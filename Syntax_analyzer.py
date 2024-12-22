@@ -22,8 +22,20 @@ class Parser:
         self.consume("KEYWORD")  # 'program'
         self.consume("IDENTIFIER")  # Nom du programme
         self.consume("DELIMITER")  # ';'
+        if (self.current_token()['value']=="var"):
+            self.parse_vars()
+
         self.parse_block()
         self.consume("DELIMITER")  # '.'
+
+    def parse_vars(self):
+        self.consume("KEYWORD")
+        while(self.current_token()["type"]=="IDENTIFIER"): # 'var'
+            self.consume("IDENTIFIER")
+            self.consume("DELIMITER")
+            self.consume("KEYWORD")
+            self.consume("DELIMITER")
+
 
     def parse_block(self):
         """Analyse un bloc BEGIN ... END."""
@@ -74,4 +86,8 @@ try:
     print("Analyse syntaxique réussie !")
 except ValueError as e:
     print(e)
+    
+    
+    
+
 """
