@@ -1,111 +1,168 @@
-class LexicalAnalyser:
-    def __init__(self):
-        # Liste des mots-clés de Pascal
-        self.KEYWORDS = ["program", "var", "integer", "real", "begin", "end", "if", "then", "else",
-                         "while", "do", "for", "to", "write", "read"]
+class ASTNode:
+    def __init__(self, type, value=None, children=None, position=None):
+        self.type = type
+        self.value = value
+        self.children = children if children is not None else []
+        self.position = position
 
-        # Liste des opérateurs et délimiteurs
-        self.OPERATORS = [":=", "+", "-", "*", "/", "=", "<", ">", "<=", ">="]
-        self.DELIMITERS = [";", ",", ".", "(", ")", ":"]
+    def add_child(self, child):
+        self.children.append(child)
 
-    def is_whitespace(self, char):
-        """Vérifie si un caractère est un espace, une tabulation ou une nouvelle ligne."""
-        return char in " \t\n\r"
+    def display(self, level=0):
+        indent = "  " * level
+        position_info = f" (position: {self.position})" if self.position is not None else ""
+        print(f"{indent}{self.type}: {self.value}{position_info}")
+        for child in self.children:
+            child.display(level + 1)
 
-    def is_letter(self, char):
-        """Vérifie si un caractère est une lettre."""
-        return char.isalpha()
+class Parser:
+    def __init__(self, tokens):
+        self.tokens = tokens
+        self.position = 0
 
-    def is_digit(self, char):
-        """Vérifie si un caractère est un chiffre."""
-        return char.isdigit()
+    def current_token(self):
+        if self.position < len(self.tokens):
+            return self.tokens[self.position]
+        return None
 
-    def analyse(self, code):
-        """Analyse lexicale du code source."""
-        tokens = []
-        i = 0
-        length = len(code)
+    def consume(self, expected_type):
+        token = self.current_token()
+        if token and token["type"] == expected_type:
+            self.position += 1
+            return token
+        raise ValueError(f"Syntax Error: Expected {expected_type}, got {token}")
 
-        while i < length:
-            char = code[i]
+    def parse_program(self):
+        program_node = ASTNode("Program")
+        token = self.consume("KEYWORD")  # 'program'
+        program_node.value = token["value"]
+        program_node.position = token["position"]
+        name_token = self.consume("IDENTIFIER")
+        program_node.add_child(ASTNode("ProgramName", name_token["value"], position=name_token["position"]))
+        self.consume("DELIMITER")  # ';'
 
-            # Ignorer les espaces blancs
-            if self.is_whitespace(char):
-                i += 1
-                continue
+        if self.current_token() and self.current_token()["value"] == "var":
+            program_node.add_child(self.parse_vars())
 
-            # Identifier les mots-clés ou identifiants
-            if self.is_letter(char):
-                start = i
-                while i < length and (self.is_letter(code[i]) or self.is_digit(code[i])):
-                    i += 1
-                word = code[start:i]
-                if word in self.KEYWORDS:
-                    tokens.append({"type": "KEYWORD", "value": word, "position": i})
+        program_node.add_child(self.parse_block())
+        self.consume("DELIMITER")  # '.'
+        return program_node
+
+    def parse_vars(self):
+        vars_node = ASTNode("Declarations")
+        self.consume("KEYWORD")  # 'var'
+
+        while self.current_token() and self.current_token()["type"] == "IDENTIFIER":
+            var_decl_node = ASTNode("VarDeclaration")
+            while self.current_token() and self.current_token()["type"] == "IDENTIFIER":
+                var_token = self.consume("IDENTIFIER")
+                var_decl_node.add_child(ASTNode("Variable", var_token["value"], position=var_token["position"]))
+                if self.current_token() and self.current_token()["value"] == ",":
+                    self.consume("DELIMITER")
                 else:
-                    tokens.append({"type": "IDENTIFIER", "value": word, "position": i})
-                continue
+                    break
+            self.consume("DELIMITER")  # ':'
+            type_token = self.consume("KEYWORD")
+            var_decl_node.add_child(ASTNode("Type", type_token["value"], position=type_token["position"]))
+            self.consume("DELIMITER")  # ';'
+            vars_node.add_child(var_decl_node)
 
-            # Identifier les nombres
-            if self.is_digit(char):
-                start = i
-                while i < length and self.is_digit(code[i]):
-                    i += 1
-                number = code[start:i]
-                tokens.append({"type": "NUMBER", "value": number, "position": i})
-                continue
+        return vars_node
 
-            # Identifier les opérateurs
-            if any(code[i:i + len(op)] == op for op in self.OPERATORS):
-                for op in self.OPERATORS:
-                    if code[i:i + len(op)] == op:
-                        tokens.append({"type": "OPERATOR", "value": op, "position": i})
-                        i += len(op)
-                        break
-                continue
+    def parse_block(self):
+        block_node = ASTNode("Block")
+        self.consume("KEYWORD")  # 'begin'
+        block_node.add_child(self.parse_statements())
+        self.consume("KEYWORD")  # 'end'
+        return block_node
 
-            # Identifier les délimiteurs
-            if char in self.DELIMITERS:
-                tokens.append({"type": "DELIMITER", "value": char, "position": i})
-                i += 1
-                continue
+    def parse_statements(self):
+        statements_node = ASTNode("Statements")
+        while self.current_token() and self.current_token()["type"] != "KEYWORD":
+            statements_node.add_child(self.parse_statement())
+        return statements_node
 
-            # Identifier les commentaires
-            if char == "{":
-                start = i
-                i += 1
-                while i < length and code[i] != "}":
-                    i += 1
-                if i < length and code[i] == "}":
-                    i += 1
-                    tokens.append({"type": "COMMENT", "value": code[start:i], "position": i})
-                else:
-                    raise ValueError(f"Erreur : Commentaire non fermé à la position {start}")
-                continue
+    def parse_statement(self):
+        token = self.current_token()
 
-            # Si le caractère n'est pas reconnu
-            raise ValueError(f"Erreur lexicale : caractère non valide '{char}' à la position {i}")
+        if token["type"] == "IDENTIFIER":
+            var_token = self.consume("IDENTIFIER")
+            self.consume("OPERATOR")  # ':='
+            expr_node = self.parse_expression()
+            self.consume("DELIMITER")  # ';'
+            return ASTNode("Assignment", var_token["value"], [expr_node], position=var_token["position"])
 
-        return tokens
+        elif token["type"] == "KEYWORD" and token["value"] == "write":
+            write_token = self.consume("KEYWORD")
+            self.consume("DELIMITER")  # '('
+            var_token = self.consume("IDENTIFIER")
+            self.consume("DELIMITER")  # ')'
+            self.consume("DELIMITER")  # ';'
+            return ASTNode("ProcedureCall", f"write({var_token['value']})", position=write_token["position"])
 
+        else:
+            raise ValueError(f"Unknown statement: {token}")
 
-# Exemple d'utilisation
-if __name__ == "__main__":
-    source_code = """
-    program Example;
-    var x, y: integer;
-    begin
-        x := 10;
-        y := x + 20;
-        write(y);
-    end.
-    """
+    def parse_expression(self):
+        token = self.current_token()
 
-    analyser = LexicalAnalyser()
+        if token["type"] == "NUMBER":
+            number_token = self.consume("NUMBER")
+            return ASTNode("Number", number_token["value"], position=number_token["position"])
 
-    try:
-        tokens = analyser.analyse(source_code)
-        for token in tokens:
-            print(token)
-    except ValueError as e:
-        print(e)
+        elif token["type"] == "IDENTIFIER":
+            var_token = self.consume("IDENTIFIER")
+            return ASTNode("Variable", var_token["value"], position=var_token["position"])
+
+        else:
+            raise ValueError(f"Invalid expression: {token}")
+
+# Example usage
+source_code = """
+program Example;
+var x, y: integer;
+begin
+    x := 10;
+    y := x + 20;
+    write(y);
+end.
+"""
+
+def lexical_analyser(code):
+    # Placeholder for the actual lexical analyser implementation
+    return [
+        {"type": "KEYWORD", "value": "program", "position": 0},
+        {"type": "IDENTIFIER", "value": "Example", "position": 8},
+        {"type": "DELIMITER", "value": ";", "position": 15},
+        {"type": "KEYWORD", "value": "var", "position": 17},
+        {"type": "IDENTIFIER", "value": "x", "position": 21},
+        {"type": "DELIMITER", "value": ",", "position": 22},
+        {"type": "IDENTIFIER", "value": "y", "position": 24},
+        {"type": "DELIMITER", "value": ":", "position": 25},
+        {"type": "KEYWORD", "value": "integer", "position": 27},
+        {"type": "DELIMITER", "value": ";", "position": 34},
+        {"type": "KEYWORD", "value": "begin", "position": 36},
+        {"type": "IDENTIFIER", "value": "x", "position": 42},
+        {"type": "OPERATOR", "value": ":=", "position": 44},
+        {"type": "NUMBER", "value": "10", "position": 47},
+        {"type": "DELIMITER", "value": ";", "position": 49},
+        {"type": "IDENTIFIER", "value": "y", "position": 51},
+        {"type": "OPERATOR", "value": ":=", "position": 53},
+        {"type": "IDENTIFIER", "value": "x", "position": 56},
+        {"type": "DELIMITER", "value": ";", "position": 57},
+        {"type": "KEYWORD", "value": "write", "position": 59},
+        {"type": "DELIMITER", "value": "(", "position": 64},
+        {"type": "IDENTIFIER", "value": "y", "position": 65},
+        {"type": "DELIMITER", "value": ")", "position": 66},
+        {"type": "DELIMITER", "value": ";", "position": 67},
+        {"type": "KEYWORD", "value": "end", "position": 69},
+        {"type": "DELIMITER", "value": ".", "position": 72}
+    ]
+
+# Perform lexical analysis
+tokens = lexical_analyser(source_code)
+
+# Parse and generate the AST
+parser = Parser(tokens)
+ast = parser.parse_program()
+ast.display()
