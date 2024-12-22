@@ -1,93 +1,161 @@
+from Lexical_analyzer import *
+class ASTNode:
+    def __init__(self, type, value=None, children=None, position=None):
+        self.type = type
+        self.value = value
+        self.children = children if children is not None else []
+        self.position = position
+
+    def add_child(self, child):
+        self.children.append(child)
+
+    def display(self, level=0):
+        indent = "  " * level
+        position_info = f" (position: {self.position})" if self.position is not None else ""
+        print(f"{indent}{self.type}: {self.value}{position_info}")
+        for child in self.children:
+            child.display(level + 1)
+
 class Parser:
     def __init__(self, tokens):
         self.tokens = tokens
         self.position = 0
 
     def current_token(self):
-        """Récupère le jeton actuel."""
         if self.position < len(self.tokens):
             return self.tokens[self.position]
         return None
 
     def consume(self, expected_type):
-        """Consomme un jeton si son type correspond au type attendu."""
         token = self.current_token()
         if token and token["type"] == expected_type:
             self.position += 1
             return token
-        raise ValueError(f"Erreur syntaxique : attendu {expected_type}, obtenu {token}")
+        raise ValueError(f"Syntax Error: Expected {expected_type}, got {token}")
 
     def parse_program(self):
-        """Analyse un programme complet."""
-        self.consume("KEYWORD")  # 'program'
-        self.consume("IDENTIFIER")  # Nom du programme
+        program_node = ASTNode("Program")
+        token = self.consume("KEYWORD")  # 'program'
+        program_node.value = token["value"]
+        program_node.position = token["position"]
+        name_token = self.consume("IDENTIFIER")
+        program_node.add_child(ASTNode("ProgramName", name_token["value"], position=name_token["position"]))
         self.consume("DELIMITER")  # ';'
-        if (self.current_token()['value']=="var"):
-            self.parse_vars()
 
-        self.parse_block()
+        if self.current_token() and self.current_token()["value"] == "var":
+            program_node.add_child(self.parse_vars())
+
+        program_node.add_child(self.parse_block())
         self.consume("DELIMITER")  # '.'
+        return program_node
 
     def parse_vars(self):
-        self.consume("KEYWORD")
-        while(self.current_token()["type"]=="IDENTIFIER"): # 'var'
-            self.consume("IDENTIFIER")
-            self.consume("DELIMITER")
-            self.consume("KEYWORD")
-            self.consume("DELIMITER")
+        vars_node = ASTNode("Declarations")
+        self.consume("KEYWORD")  # 'var'
 
+        while self.current_token() and self.current_token()["type"] == "IDENTIFIER":
+            var_decl_node = ASTNode("VarDeclaration")
+            while self.current_token() and self.current_token()["type"] == "IDENTIFIER":
+                var_token = self.consume("IDENTIFIER")
+                var_decl_node.add_child(ASTNode("Variable", var_token["value"], position=var_token["position"]))
+                if self.current_token() and self.current_token()["value"] == ",":
+                    self.consume("DELIMITER")
+                else:
+                    break
+            self.consume("DELIMITER")  # ':'
+            type_token = self.consume("KEYWORD")
+            var_decl_node.add_child(ASTNode("Type", type_token["value"], position=type_token["position"]))
+            self.consume("DELIMITER")  # ';'
+            vars_node.add_child(var_decl_node)
+
+        return vars_node
 
     def parse_block(self):
-        """Analyse un bloc BEGIN ... END."""
+        block_node = ASTNode("Block")
         self.consume("KEYWORD")  # 'begin'
-        self.parse_statements()
+        block_node.add_child(self.parse_statements())
         self.consume("KEYWORD")  # 'end'
+        return block_node
 
     def parse_statements(self):
-        """Analyse une ou plusieurs instructions."""
+        statements_node = ASTNode("Statements")
         while self.current_token() and self.current_token()["type"] != "KEYWORD":
-            self.parse_statement()
+            statements_node.add_child(self.parse_statement())
+        return statements_node
 
     def parse_statement(self):
-        """Analyse une instruction individuelle."""
         token = self.current_token()
-        if token["type"] == "IDENTIFIER":  # Instruction d'affectation
-            self.consume("IDENTIFIER")
+
+        if token["type"] == "IDENTIFIER":  # Assignment
+            var_token = self.consume("IDENTIFIER")
             self.consume("OPERATOR")  # ':='
-            self.parse_expression()
+            expr_node = self.parse_expression()  # Updated to support operations
             self.consume("DELIMITER")  # ';'
-        elif token["type"] == "KEYWORD" and token["value"] == "write":  # Instruction WRITE
-            self.consume("KEYWORD")  # 'write'
+            return ASTNode("Assignment", var_token["value"], [expr_node], position=var_token["position"])
+
+        elif token["type"] == "KEYWORD" and token["value"] == "write":  # Procedure call
+            write_token = self.consume("KEYWORD")
             self.consume("DELIMITER")  # '('
-            self.consume("IDENTIFIER")  # Identifiant dans write()
+            expr_node = self.parse_expression()  # Allow expressions in write()
             self.consume("DELIMITER")  # ')'
             self.consume("DELIMITER")  # ';'
+            return ASTNode("ProcedureCall", f"write", [expr_node], position=write_token["position"])
+
         else:
-            raise ValueError(f"Instruction inconnue : {token}")
+            raise ValueError(f"Unknown statement: {token}")
 
     def parse_expression(self):
-        """Analyse une expression simple (par exemple un nombre ou un identifiant)."""
+        """Parses an expression, supporting binary operations."""
+        left = self.parse_term()
+
+        while self.current_token() and self.current_token()["type"] == "OPERATOR":
+            operator_token = self.consume("OPERATOR")
+            right = self.parse_term()
+            left = ASTNode("BinaryOperation", operator_token["value"], [left, right],
+                           position=operator_token["position"])
+
+        return left
+
+    def parse_term(self):
+        """Parses a single term: a number, a variable, or a grouped expression."""
         token = self.current_token()
+
         if token["type"] == "NUMBER":
-            self.consume("NUMBER")
+            number_token = self.consume("NUMBER")
+            return ASTNode("Number", number_token["value"], position=number_token["position"])
+
         elif token["type"] == "IDENTIFIER":
-            self.consume("IDENTIFIER")
+            var_token = self.consume("IDENTIFIER")
+            return ASTNode("Variable", var_token["value"], position=var_token["position"])
+
+        elif token["type"] == "DELIMITER" and token["value"] == "(":
+            self.consume("DELIMITER")  # '('
+            expr = self.parse_expression()
+            self.consume("DELIMITER")  # ')'
+            return expr
+
         else:
-            raise ValueError(f"Expression invalide : {token}")
+            raise ValueError(f"Invalid term: {token}")
 
+
+# Example usage
+source_code = """
+program Example;
+var x, y: integer;
+begin
+    x := 10;
+    y := x + 20;
+    write(y);
+end.
 """
-# Jetons générés par l'analyse lexicale
-tokens = lexical_analyser(source_code)
 
-# Analyse syntaxique
-try:
-    parser = Parser(tokens)
-    parser.parse_program()
-    print("Analyse syntaxique réussie !")
-except ValueError as e:
-    print(e)
-    
-    
-    
 
-"""
+
+# Perform lexical analysis
+analyser = LexicalAnalyser()
+tokens = analyser.analyse(source_code)
+
+# Parse and generate the AST
+parser = Parser(tokens)
+ast = parser.parse_program()
+ast.display()

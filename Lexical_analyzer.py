@@ -107,5 +107,6 @@ if __name__ == "__main__":
         tokens = analyser.analyse(source_code)
         for token in tokens:
             print(token)
+            print(",")
     except ValueError as e:
         print(e)
