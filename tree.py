@@ -85,25 +85,38 @@ class Parser:
     def parse_statement(self):
         token = self.current_token()
 
-        if token["type"] == "IDENTIFIER":
+        if token["type"] == "IDENTIFIER":  # Assignment
             var_token = self.consume("IDENTIFIER")
             self.consume("OPERATOR")  # ':='
-            expr_node = self.parse_expression()
+            expr_node = self.parse_expression()  # Updated to support operations
             self.consume("DELIMITER")  # ';'
             return ASTNode("Assignment", var_token["value"], [expr_node], position=var_token["position"])
 
-        elif token["type"] == "KEYWORD" and token["value"] == "write":
+        elif token["type"] == "KEYWORD" and token["value"] == "write":  # Procedure call
             write_token = self.consume("KEYWORD")
             self.consume("DELIMITER")  # '('
-            var_token = self.consume("IDENTIFIER")
+            expr_node = self.parse_expression()  # Allow expressions in write()
             self.consume("DELIMITER")  # ')'
             self.consume("DELIMITER")  # ';'
-            return ASTNode("ProcedureCall", f"write({var_token['value']})", position=write_token["position"])
+            return ASTNode("ProcedureCall", f"write", [expr_node], position=write_token["position"])
 
         else:
             raise ValueError(f"Unknown statement: {token}")
 
     def parse_expression(self):
+        """Parses an expression, supporting binary operations."""
+        left = self.parse_term()
+
+        while self.current_token() and self.current_token()["type"] == "OPERATOR":
+            operator_token = self.consume("OPERATOR")
+            right = self.parse_term()
+            left = ASTNode("BinaryOperation", operator_token["value"], [left, right],
+                           position=operator_token["position"])
+
+        return left
+
+    def parse_term(self):
+        """Parses a single term: a number, a variable, or a grouped expression."""
         token = self.current_token()
 
         if token["type"] == "NUMBER":
@@ -114,8 +127,15 @@ class Parser:
             var_token = self.consume("IDENTIFIER")
             return ASTNode("Variable", var_token["value"], position=var_token["position"])
 
+        elif token["type"] == "DELIMITER" and token["value"] == "(":
+            self.consume("DELIMITER")  # '('
+            expr = self.parse_expression()
+            self.consume("DELIMITER")  # ')'
+            return expr
+
         else:
-            raise ValueError(f"Invalid expression: {token}")
+            raise ValueError(f"Invalid term: {token}")
+
 
 # Example usage
 source_code = """
@@ -129,7 +149,6 @@ end.
 """
 
 def lexical_analyser(code):
-    # Placeholder for the actual lexical analyser implementation
     return [
         {"type": "KEYWORD", "value": "program", "position": 0},
         {"type": "IDENTIFIER", "value": "Example", "position": 8},
@@ -149,14 +168,16 @@ def lexical_analyser(code):
         {"type": "IDENTIFIER", "value": "y", "position": 51},
         {"type": "OPERATOR", "value": ":=", "position": 53},
         {"type": "IDENTIFIER", "value": "x", "position": 56},
-        {"type": "DELIMITER", "value": ";", "position": 57},
-        {"type": "KEYWORD", "value": "write", "position": 59},
-        {"type": "DELIMITER", "value": "(", "position": 64},
-        {"type": "IDENTIFIER", "value": "y", "position": 65},
-        {"type": "DELIMITER", "value": ")", "position": 66},
-        {"type": "DELIMITER", "value": ";", "position": 67},
-        {"type": "KEYWORD", "value": "end", "position": 69},
-        {"type": "DELIMITER", "value": ".", "position": 72}
+        {"type": "OPERATOR", "value": "+", "position": 58},
+        {"type": "NUMBER", "value": "20", "position": 60},
+        {"type": "DELIMITER", "value": ";", "position": 62},
+        {"type": "KEYWORD", "value": "write", "position": 64},
+        {"type": "DELIMITER", "value": "(", "position": 69},
+        {"type": "IDENTIFIER", "value": "y", "position": 70},
+        {"type": "DELIMITER", "value": ")", "position": 71},
+        {"type": "DELIMITER", "value": ";", "position": 72},
+        {"type": "KEYWORD", "value": "end", "position": 74},
+        {"type": "DELIMITER", "value": ".", "position": 77}
     ]
 
 # Perform lexical analysis
