@@ -105,10 +105,11 @@ class Parser:
             raise ValueError(f"Unknown statement: {token}")
 
     def parse_expression(self):
-        """Parses an expression, supporting binary operations."""
-        left = self.parse_term()
+        """Parses an expression with addition and subtraction."""
+        left = self.parse_term()  # Start by parsing a term
 
-        while self.current_token() and self.current_token()["type"] == "OPERATOR":
+        while self.current_token() and self.current_token()["type"] == "OPERATOR" and self.current_token()["value"] in (
+        "+", "-"):
             operator_token = self.consume("OPERATOR")
             right = self.parse_term()
             left = ASTNode("BinaryOperation", operator_token["value"], [left, right],
@@ -117,7 +118,20 @@ class Parser:
         return left
 
     def parse_term(self):
-        """Parses a single term: a number, a variable, or a grouped expression."""
+        """Parses a term with multiplication and division."""
+        left = self.parse_factor()  # Start by parsing a factor
+
+        while self.current_token() and self.current_token()["type"] == "OPERATOR" and self.current_token()["value"] in (
+        "*", "/"):
+            operator_token = self.consume("OPERATOR")
+            right = self.parse_factor()
+            left = ASTNode("BinaryOperation", operator_token["value"], [left, right],
+                           position=operator_token["position"])
+
+        return left
+
+    def parse_factor(self):
+        """Parses a single factor: a number, a variable, or a grouped expression."""
         token = self.current_token()
 
         if token["type"] == "NUMBER":
@@ -135,7 +149,7 @@ class Parser:
             return expr
 
         else:
-            raise ValueError(f"Invalid term: {token}")
+            raise ValueError(f"Invalid factor: {token}")
 
 
 # Example usage
@@ -144,7 +158,7 @@ program Example;
 var x, y: integer;
 begin
     x := 10;
-    y := x + 20;
+    y := (x + 20)*12;
     write(y);
 end.
 """
