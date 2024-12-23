@@ -13,16 +13,29 @@ class Semantic_analyzer:
             for child in node.children:
                 self.evaluate(child)
 
+        elif node.type == "Block":
+            for child in node.children:
+                self.evaluate(child)
+
+        elif node.type == "Statements":
+            for child in node.children:
+                self.evaluate(child)
         elif node.type == "Declarations":
             for declaration in node.children:
                 var_type = None
+                var_list=[]
                 for child in declaration.children:
-                    if child.type == "Type":
-                        var_type = child.value
-                    elif child.type == "Variable":
-                        if var_type is None:
-                            raise ValueError(f"Type not declared for variable {child.value}")
-                        self.symbol_table[child.value] = {"type": var_type, "value": None}
+                    if child.type == "Variable":
+                        var_list.append(child.value)
+                    elif child.type == "Type":
+                        var_type=child.value
+                        for variable in var_list:
+                            self.symbol_table[variable] = {"type": var_type, "value": None}
+                        var_list = []
+                        var_type = None
+                    elif var_type is None:
+                        raise ValueError(f"Type not declared for variable {var_list}")
+
 
         elif node.type == "Assignment":
             var_name = node.value
