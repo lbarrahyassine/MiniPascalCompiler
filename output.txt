@@ -1,7 +1,3 @@
-; Program: program
-; ProgramNAME: Example
-x DW 0
-y DW 0
 MOV AX, 10
 MOV x, AX
 MOV AX, x

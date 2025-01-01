@@ -1,6 +1,6 @@
-from test import *
+from Semantic_analyzer import *
 class CodeGenerator:
-    def __init__(self, ast, symbol_table, output_file="output.asm"):
+    def __init__(self, ast, symbol_table, output_file="output.txt"):
         self.ast = ast
         self.symbol_table = symbol_table
         self.instructions = []
@@ -13,21 +13,23 @@ class CodeGenerator:
         return f"L{self.current_label}"
 
     def generate_code(self, node):
-        print(f"Processing node: {node.type}")
         if node.type == "ProgramName":
             # Ajouter un commentaire avec le nom du programme
-            self.instructions.append(f"; ProgramNAME: {node.value}\n")
+            '''self.instructions.append(f"; ProgramNAME: {node.value}\n")'''
+            pass
 
         elif node.type == "Program":
-            self.instructions.append(f"; Program: {node.value}\n")
+            '''self.instructions.append(f"; Program: {node.value}\n")'''
             for child in node.children:
                 self.generate_code(child)
 
+
         elif node.type == "Declarations":
             # Ajouter les déclarations de variables
-            for declaration in node.children:
+            '''for declaration in node.children:
                 variable = declaration.children[0]
-                self.instructions.append(f"{variable.value} DW 0\n")
+                self.instructions.append(f"{variable.value} DW 0\n")'''
+            pass
 
         elif node.type == "Block":
             # Générer le code pour les instructions dans le bloc
@@ -90,7 +92,6 @@ class CodeGenerator:
 
 print("------------------------------------------------------------------")
 generator = CodeGenerator(ast, symbol_table)
-print(f"Root node type: {ast.type}")  # Log pour vérifier le nœud racine
 generator.generate_code(ast)
 
 #ast.display()
