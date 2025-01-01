@@ -79,6 +79,9 @@ class Semantic_analyzer:
                 raise ValueError(f"Variable {node.value} is not declared")
             return self.symbol_table[node.value]["type"]
 
+        elif node.type=="Write":
+            pass
+
         else:
             raise ValueError(f"Unknown node type: {node.type}")
 

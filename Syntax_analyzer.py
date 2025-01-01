@@ -1,4 +1,5 @@
 from Lexical_analyzer import *
+
 class ASTNode:
     def __init__(self, type, value=None, children=None, position=None):
         self.type = type
@@ -15,6 +16,7 @@ class ASTNode:
         print(f"{indent}{self.type}: {self.value}{position_info}")
         for child in self.children:
             child.display(level + 1)
+
 
 class Parser:
     def __init__(self, tokens):
@@ -79,37 +81,41 @@ class Parser:
 
     def parse_statements(self):
         statements_node = ASTNode("Statements")
-        while self.current_token() and self.current_token()["type"] != "KEYWORD":
+        while self.current_token() and not (self.current_token()["type"] == "KEYWORD" and self.current_token()["value"] == "end"):
             statements_node.add_child(self.parse_statement())
         return statements_node
 
     def parse_statement(self):
         token = self.current_token()
 
-        if token["type"] == "IDENTIFIER":  # Assignment
+        if token["type"] == "IDENTIFIER":  # Handle assignment
             var_token = self.consume("IDENTIFIER")
             self.consume("OPERATOR")  # ':='
-            expr_node = self.parse_expression()  # Updated to support operations
+            expr_node = self.parse_expression()
             self.consume("DELIMITER")  # ';'
             return ASTNode("Assignment", var_token["value"], [expr_node], position=var_token["position"])
 
-        elif token["type"] == "KEYWORD" and token["value"] == "write":  # Procedure call
-            write_token = self.consume("KEYWORD")
-            self.consume("DELIMITER")  # '('
-            expr_node = self.parse_expression()  # Allow expressions in write()
-            self.consume("DELIMITER")  # ')'
-            self.consume("DELIMITER")  # ';'
-            return ASTNode("ProcedureCall", f"write", [expr_node], position=write_token["position"])
+        elif token["type"] == "KEYWORD" and token["value"] == "write":  # Handle write()
+            return self.parse_write()
 
         else:
-            raise ValueError(f"Unknown statement: {token}")
+            raise ValueError(f"Syntax Error: Unexpected statement at {token}")
+
+    def parse_write(self):
+        """Parse the `write()` function."""
+        write_token = self.consume("KEYWORD")  # 'write'
+        self.consume("DELIMITER")  # '('
+        expr_node = self.parse_expression()  # Parse the expression inside `write()`
+        self.consume("DELIMITER")  # ')'
+        self.consume("DELIMITER")  # ';'
+        return ASTNode("Write", None, [expr_node], position=write_token["position"])
 
     def parse_expression(self):
         """Parses an expression with addition and subtraction."""
-        left = self.parse_term()  # Start by parsing a term
+        left = self.parse_term()
 
         while self.current_token() and self.current_token()["type"] == "OPERATOR" and self.current_token()["value"] in (
-        "+", "-"):
+            "+", "-"):
             operator_token = self.consume("OPERATOR")
             right = self.parse_term()
             left = ASTNode("BinaryOperation", operator_token["value"], [left, right],
@@ -119,10 +125,10 @@ class Parser:
 
     def parse_term(self):
         """Parses a term with multiplication and division."""
-        left = self.parse_factor()  # Start by parsing a factor
+        left = self.parse_factor()
 
         while self.current_token() and self.current_token()["type"] == "OPERATOR" and self.current_token()["value"] in (
-        "*", "/"):
+            "*", "/"):
             operator_token = self.consume("OPERATOR")
             right = self.parse_factor()
             left = ASTNode("BinaryOperation", operator_token["value"], [left, right],
@@ -156,15 +162,13 @@ class Parser:
 source_code = """
 program Example;
 var x: integer;
-y:  integer;
+y: integer;
 begin
     x := 10;
-    y := x + 20*12+4;
+    y := x + 20 * 12 + 4;
     write(y);
 end.
 """
-
-
 
 # Perform lexical analysis
 analyser = LexicalAnalyser()
@@ -173,4 +177,6 @@ tokens = analyser.analyse(source_code)
 # Parse and generate the AST
 parser = Parser(tokens)
 ast = parser.parse_program()
+
+# Display the AST
 ast.display()

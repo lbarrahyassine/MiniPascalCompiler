@@ -1,4 +1,5 @@
 from Semantic_analyzer import *
+
 class CodeGenerator:
     def __init__(self, ast, symbol_table, output_file="output.txt"):
         self.ast = ast
@@ -12,24 +13,22 @@ class CodeGenerator:
         self.current_label += 1
         return f"L{self.current_label}"
 
+    def format_address(self, address):
+        """Formate l'adresse au format `$0000`, `$0001`, etc."""
+        return f"${address:04X}"
+
     def generate_code(self, node):
         if node.type == "ProgramName":
             # Ajouter un commentaire avec le nom du programme
-            '''self.instructions.append(f"; ProgramNAME: {node.value}\n")'''
-            pass
+            pass  # On peut ajouter des commentaires ou ignorer
 
         elif node.type == "Program":
-            '''self.instructions.append(f"; Program: {node.value}\n")'''
             for child in node.children:
                 self.generate_code(child)
 
-
         elif node.type == "Declarations":
-            # Ajouter les déclarations de variables
-            '''for declaration in node.children:
-                variable = declaration.children[0]
-                self.instructions.append(f"{variable.value} DW 0\n")'''
-            pass
+            # Ajout des déclarations de variables
+            pass  # Pas nécessaire pour l'assembleur ici
 
         elif node.type == "Block":
             # Générer le code pour les instructions dans le bloc
@@ -46,13 +45,15 @@ class CodeGenerator:
             var_name = node.value
             expression_code = self.generate_expression(node.children[0])
             self.instructions.extend(expression_code)
-            self.instructions.append(f"MOV {var_name}, AX\n")
+            variable_address = self.format_address(self.symbol_table[var_name]["address"])
+            self.instructions.append(f"MOV {variable_address}, AX\n")  # Pas de crochets ici
 
         elif node.type == "Write":
-            # Générer un affichage (simulé pour l'instant)
+            # Générer le code pour write (affichage)
             var_name = node.children[0].value
-            self.instructions.append(f"MOV AX, {var_name}\n")
-            self.instructions.append(f"OUT AX\n")
+            variable_address = self.format_address(self.symbol_table[var_name]["address"])
+            self.instructions.append(f"MOV AX, {variable_address}\n")  # Pas de crochets ici
+            self.instructions.append("OUT AX\n")
 
     def generate_expression(self, node):
         """Génère le code assembleur pour une expression."""
@@ -60,7 +61,8 @@ class CodeGenerator:
             return [f"MOV AX, {node.value}\n"]
 
         elif node.type == "Variable":
-            return [f"MOV AX, {node.value}\n"]
+            variable_address = self.format_address(self.symbol_table[node.value]["address"])
+            return [f"MOV AX, {variable_address}\n"]  # Pas de crochets ici
 
         elif node.type == "BinaryOperation":
             left_code = self.generate_expression(node.children[0])
@@ -90,11 +92,11 @@ class CodeGenerator:
         with open(self.output_file, "w") as f:
             f.writelines(self.instructions)
 
+# Exemple d'utilisation
 print("------------------------------------------------------------------")
 generator = CodeGenerator(ast, symbol_table)
 generator.generate_code(ast)
 
-#ast.display()
-#print(symbol_table)
-print(generator.instructions)
+print("\nInstructions générées :")
+print("\n".join(generator.instructions))
 generator.write_to_file()

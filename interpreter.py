@@ -1,24 +1,24 @@
 from Code_generator import *
+
 class Interpreter:
     def __init__(self, assembly_code, symbol_table):
         self.assembly_code = assembly_code
         self.symbol_table = symbol_table
-        self.memory = [0] * len(symbol_table)  # Memory as a list, one slot per variable
-        self.registers = {"AX": 0, "BX": 0}  # Simulate CPU registers
-        self.program_counter = 0  # Simulate the program counter
+        self.memory = [0] * len(symbol_table)  # Mémoire représentée comme une liste
+        self.registers = {"AX": 0, "BX": 0, "SP": []}  # Simuler les registres du CPU, incluant le pointeur de pile
+        self.program_counter = 0  # Simuler le compteur de programme
 
     def execute(self):
-        """Main execution loop."""
+        """Boucle principale d'exécution."""
         while self.program_counter < len(self.assembly_code):
             instruction = self.assembly_code[self.program_counter].strip()
-            print(f"Executing: {instruction}")
             self.program_counter += 1
-            if not instruction or instruction.startswith(";"):  # Skip comments or empty lines
+            if not instruction or instruction.startswith(";"):  # Ignorer les commentaires ou lignes vides
                 continue
             self.execute_instruction(instruction)
 
     def execute_instruction(self, instruction):
-        """Execute a single instruction."""
+        """Exécuter une seule instruction."""
         parts = instruction.split()
         command = parts[0]
 
@@ -50,26 +50,26 @@ class Interpreter:
             raise ValueError(f"Unknown instruction: {instruction}")
 
     def mov(self, dest, src):
-        """MOV instruction implementation."""
+        """Implémentation de l'instruction MOV."""
         value = self.get_value(src)
-        if dest in self.registers:  # Register destination
+        if dest in self.registers:  # Si la destination est un registre
             self.registers[dest] = value
-        elif dest in self.symbol_table:  # Memory destination
-            address = self.symbol_table[dest]["address"]
+        elif dest.startswith("$"):  # Si la destination est une adresse mémoire
+            address = self.get_address(dest)
             self.memory[address] = value
         else:
             raise ValueError(f"Unknown destination: {dest}")
 
     def add(self, dest, src):
-        """ADD instruction implementation."""
+        """Implémentation de l'instruction ADD."""
         value = self.get_value(src)
-        if dest in self.registers:
+        if dest in self.registers:  # L'addition ne peut être que dans un registre
             self.registers[dest] += value
         else:
             raise ValueError(f"ADD requires a register destination, got: {dest}")
 
     def mul(self, dest, src):
-        """MUL instruction implementation."""
+        """Implémentation de l'instruction MUL."""
         value = self.get_value(src)
         if dest in self.registers:
             self.registers[dest] *= value
@@ -77,13 +77,12 @@ class Interpreter:
             raise ValueError(f"MUL requires a register destination, got: {dest}")
 
     def push(self, src):
-        """PUSH instruction implementation."""
+        """Implémentation de l'instruction PUSH."""
         value = self.get_value(src)
-        self.registers["SP"] = self.registers.get("SP", [])  # Initialize stack pointer
         self.registers["SP"].append(value)
 
     def pop(self, dest):
-        """POP instruction implementation."""
+        """Implémentation de l'instruction POP."""
         stack = self.registers.get("SP", [])
         if not stack:
             raise ValueError("Stack underflow")
@@ -94,28 +93,40 @@ class Interpreter:
             raise ValueError(f"POP requires a register destination, got: {dest}")
 
     def out(self, src):
-        """OUT instruction implementation."""
+        """Implémentation de l'instruction OUT."""
         value = self.get_value(src)
-        print(f"OUTPUT: {value}")
+        print(f"OUTPUT: {value}")  # Afficher l'output de la commande OUT
 
     def get_value(self, operand):
-        """Get the value of a register, memory location, or constant."""
-        if operand in self.registers:  # Register
+        """Obtenir la valeur d'un registre, une adresse mémoire, ou une constante."""
+        if operand in self.registers:  # Si c'est un registre
             return self.registers[operand]
-        elif operand in self.symbol_table:  # Memory
+        elif operand.isdigit():  # Si c'est une constante immédiate
+            return int(operand)
+        elif operand.startswith("$"):  # Si c'est une adresse mémoire (ex: $0000)
+            address = self.get_address(operand)
+            return self.memory[address]
+        elif operand in self.symbol_table:  # Si c'est une variable (nom de la variable)
             address = self.symbol_table[operand]["address"]
             return self.memory[address]
-        elif operand.isdigit():  # Immediate constant
-            return int(operand)
         else:
             raise ValueError(f"Unknown operand: {operand}")
 
+    def get_address(self, operand):
+        """Convertir une adresse en notation hexadécimale (ex: $0000) en un entier."""
+        # S'assurer que l'adresse commence par "$" et est au format hexadécimal
+        if operand.startswith("$"):
+            return int(operand[1:], 16)  # Convertir l'adresse hexadécimale en entier
+        else:
+            raise ValueError(f"Invalid address format: {operand}")
 
-assembly_code=generator.instructions
 
+# Exemple d'utilisation avec le code assembleur généré
+assembly_code = generator.instructions
+print("------------------------------------------------------------------")
 interpreter = Interpreter(assembly_code, symbol_table)
 interpreter.execute()
 
-# Print Final Memory State
+# Afficher l'état final de la mémoire
 print("\nMemory State:")
 print(interpreter.memory)
