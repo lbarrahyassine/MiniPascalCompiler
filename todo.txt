@@ -3,3 +3,4 @@ _add write in semantic
 _negative values are not understood by the lexical analyzer
 _handle the ProgramName, Block, Program, Statements in evaluate(semantic_analyzer)
 _type errors in binary operations (only + and * are handeled)  on tuesday 24
+_semantic analyzer should not calculate

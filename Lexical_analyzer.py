@@ -1,7 +1,7 @@
 class LexicalAnalyser:
     def __init__(self):
         # Liste des mots-clés de Pascal
-        self.KEYWORDS = ["program", "var", "integer", "real", "begin", "end", "if", "then", "else",
+        self.KEYWORDS = ["program", "var", "integer","string","real", "begin", "end", "if", "then", "else",
                          "while", "do", "for", "to", "write", "read"]
 
         # Liste des opérateurs et délimiteurs
