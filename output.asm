@@ -1,0 +1,20 @@
+; Program: program
+; ProgramNAME: Example
+x DW 0
+y DW 0
+MOV AX, 10
+MOV x, AX
+MOV AX, x
+PUSH AX
+MOV AX, 20
+PUSH AX
+MOV AX, 12
+POP BX
+MUL AX, BX
+POP BX
+ADD AX, BX
+PUSH AX
+MOV AX, 4
+POP BX
+ADD AX, BX
+MOV y, AX

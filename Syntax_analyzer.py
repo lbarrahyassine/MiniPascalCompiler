@@ -155,7 +155,7 @@ class Parser:
 # Example usage
 source_code = """
 program Example;
-var x, r: integer;
+var x: integer;
 y:  integer;
 begin
     x := 10;
