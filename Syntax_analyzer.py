@@ -161,12 +161,15 @@ class Parser:
 # Example usage
 source_code = """
 program Example;
-var x: integer;
+var x,z: integer;
 y: integer;
 begin
     x := 10;
+    write(x);
     y := x + 20 * 12 + 4;
     write(y);
+    z :=y+13;
+    write(z);
 end.
 """
 
