@@ -137,12 +137,16 @@ class Parser:
         return left
 
     def parse_factor(self):
-        """Parses a single factor: a number, a variable, or a grouped expression."""
+        """Parses a single factor: a number, a variable, a grouped expression, or a string."""
         token = self.current_token()
 
         if token["type"] == "NUMBER":
             number_token = self.consume("NUMBER")
             return ASTNode("Number", number_token["value"], position=number_token["position"])
+
+        elif token["type"] == "STRING":
+            string_token = self.consume("STRING")
+            return ASTNode("String", string_token["value"], position=string_token["position"])
 
         elif token["type"] == "IDENTIFIER":
             var_token = self.consume("IDENTIFIER")
@@ -158,17 +162,18 @@ class Parser:
             raise ValueError(f"Invalid factor: {token}")
 
 
+
 # Example usage
 source_code = """
 program Example;
-var x,z: integer;
-y: integer;
+var x,y: integer;
+z: string;
 begin
     x := 10;
     write(x);
     y := x + 20 * 12 + 4;
     write(y);
-    z :=y+13;
+    z :="ender";
     write(z);
 end.
 """

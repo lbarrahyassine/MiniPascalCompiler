@@ -37,7 +37,7 @@ class Semantic_analyzer:
                             self.symbol_table[variable] = {
                                 "type": var_type,
                                 "address": adr,
-                                #"value": None
+                                # "value": None
                             }
                             adr += 1
                         var_list = []
@@ -66,21 +66,38 @@ class Semantic_analyzer:
             operator = node.value
 
             # Type check
-            if left_type != "integer" or right_type != "integer":
-                raise TypeError(
-                    f"Type error: Cannot apply operator {operator} to non-integer operands"
-                )
+            if operator in ("+", "-"):
+                if left_type != "integer" or right_type != "integer":
+                    raise TypeError(
+                        f"Type error: Cannot apply operator {operator} to non-integer operands"
+                    )
+            elif operator == "+":
+                # Allow string concatenation
+                if left_type == "string" and right_type == "string":
+                    return "string"
+                else:
+                    raise TypeError(
+                        f"Type error: Operator '+' requires both operands to be strings or integers"
+                    )
 
         elif node.type == "Number":
             return "integer"
+
+        elif node.type == "String":
+            return "string"
 
         elif node.type == "Variable":
             if node.value not in self.symbol_table:
                 raise ValueError(f"Variable {node.value} is not declared")
             return self.symbol_table[node.value]["type"]
 
-        elif node.type=="Write":
-            pass
+        elif node.type == "Write":
+            # Ensure the argument type is either integer or string
+            expr_type = self.get_node_type(node.children[0])
+            if expr_type not in ("integer", "string"):
+                raise TypeError(
+                    f"Type error: write() only supports integer or string arguments, got {expr_type}"
+                )
 
         else:
             raise ValueError(f"Unknown node type: {node.type}")
@@ -88,6 +105,8 @@ class Semantic_analyzer:
     def get_node_type(self, node):
         if node.type == "Number":
             return "integer"
+        elif node.type == "String":
+            return "string"
         elif node.type == "Variable":
             if node.value not in self.symbol_table:
                 raise ValueError(f"Variable {node.value} is not declared")
@@ -98,6 +117,8 @@ class Semantic_analyzer:
 
             if left_type == "integer" and right_type == "integer":
                 return "integer"
+            elif left_type == "string" and right_type == "string":
+                return "string"
             else:
                 raise TypeError(
                     f"Type error in binary operation with types {left_type} and {right_type}"
@@ -106,8 +127,8 @@ class Semantic_analyzer:
             raise ValueError(f"Unsupported node type for type checking: {node.type}")
 
 
-
+# Example usage
 interpreter = Semantic_analyzer(ast)
 interpreter.evaluate(ast)
-symbol_table=interpreter.symbol_table
+symbol_table = interpreter.symbol_table
 print(interpreter.symbol_table)

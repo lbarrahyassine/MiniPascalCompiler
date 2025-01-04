@@ -4,22 +4,22 @@ class Interpreter:
     def __init__(self, assembly_code, symbol_table):
         self.assembly_code = assembly_code
         self.symbol_table = symbol_table
-        self.memory = [0] * len(symbol_table)  # Mémoire représentée comme une liste
-        self.registers = {"AX": 0, "BX": 0, "SP": []}  # Simuler les registres du CPU, incluant le pointeur de pile
-        self.program_counter = 0  # Simuler le compteur de programme
-        self.outputs=[]
+        self.memory = [None] * len(symbol_table)  # Memory represented as a list, supporting both integers and strings
+        self.registers = {"AX": None, "BX": None, "SP": []}  # Registers, allowing for mixed types
+        self.program_counter = 0  # Simulate the program counter
+        self.outputs = []
 
     def execute(self):
-        """Boucle principale d'exécution."""
+        """Main execution loop."""
         while self.program_counter < len(self.assembly_code):
             instruction = self.assembly_code[self.program_counter].strip()
             self.program_counter += 1
-            if not instruction or instruction.startswith(";"):  # Ignorer les commentaires ou lignes vides
+            if not instruction or instruction.startswith(";"):  # Ignore comments or empty lines
                 continue
             self.execute_instruction(instruction)
 
     def execute_instruction(self, instruction):
-        """Exécuter une seule instruction."""
+        """Execute a single instruction."""
         parts = instruction.split()
         command = parts[0]
 
@@ -47,43 +47,57 @@ class Interpreter:
             src = parts[1]
             self.out(src)
 
+        elif command == "OUT_STR":
+            src = " ".join(parts[1:])  # Handles string literals with spaces
+            self.out_str(src)
+
+        elif command == "CONCAT":
+            dest, src = parts[1].rstrip(","), parts[2]
+            self.concat(dest, src)
+
         else:
             raise ValueError(f"Unknown instruction: {instruction}")
 
     def mov(self, dest, src):
-        """Implémentation de l'instruction MOV."""
+        """Implementation of the MOV instruction."""
         value = self.get_value(src)
-        if dest in self.registers:  # Si la destination est un registre
+        if dest in self.registers:  # If the destination is a register
             self.registers[dest] = value
-        elif dest.startswith("$"):  # Si la destination est une adresse mémoire
+        elif dest.startswith("$"):  # If the destination is a memory address
             address = self.get_address(dest)
             self.memory[address] = value
         else:
             raise ValueError(f"Unknown destination: {dest}")
 
     def add(self, dest, src):
-        """Implémentation de l'instruction ADD."""
+        """Implementation of the ADD instruction."""
         value = self.get_value(src)
-        if dest in self.registers:  # L'addition ne peut être que dans un registre
-            self.registers[dest] += value
+        if dest in self.registers:  # Addition only works in registers
+            if isinstance(self.registers[dest], int) and isinstance(value, int):
+                self.registers[dest] += value
+            else:
+                raise ValueError(f"ADD requires integer operands, got {self.registers[dest]} and {value}")
         else:
             raise ValueError(f"ADD requires a register destination, got: {dest}")
 
     def mul(self, dest, src):
-        """Implémentation de l'instruction MUL."""
+        """Implementation of the MUL instruction."""
         value = self.get_value(src)
         if dest in self.registers:
-            self.registers[dest] *= value
+            if isinstance(self.registers[dest], int) and isinstance(value, int):
+                self.registers[dest] *= value
+            else:
+                raise ValueError(f"MUL requires integer operands, got {self.registers[dest]} and {value}")
         else:
             raise ValueError(f"MUL requires a register destination, got: {dest}")
 
     def push(self, src):
-        """Implémentation de l'instruction PUSH."""
+        """Implementation of the PUSH instruction."""
         value = self.get_value(src)
         self.registers["SP"].append(value)
 
     def pop(self, dest):
-        """Implémentation de l'instruction POP."""
+        """Implementation of the POP instruction."""
         stack = self.registers.get("SP", [])
         if not stack:
             raise ValueError("Stack underflow")
@@ -94,41 +108,77 @@ class Interpreter:
             raise ValueError(f"POP requires a register destination, got: {dest}")
 
     def out(self, src):
-        """Implémentation de l'instruction OUT."""
+        """Implementation of the OUT instruction for integers."""
         value = self.get_value(src)
         self.outputs.append(value)
-        #print(f"OUTPUT: {value}")  # Afficher l'output de la commande OUT
+
+    def out_str(self, src):
+        """Implementation of the OUT_STR instruction for strings."""
+        if src.startswith('"') and src.endswith('"'):  # String literal
+            self.outputs.append(src[1:-1])
+        else:  # Variable
+            value = self.get_value(src)
+            if isinstance(value, str):
+                self.outputs.append(value)
+            else:
+                raise ValueError(f"OUT_STR expects a string, got {value}")
+
+    def concat(self, dest, src):
+        """Implementation of the CONCAT instruction for strings."""
+        if dest in self.registers and isinstance(self.registers[dest], str):
+            left = self.registers[dest]
+        elif dest.startswith("$"):
+            address = self.get_address(dest)
+            left = self.memory[address]
+        else:
+            raise ValueError(f"CONCAT invalid destination: {dest}")
+
+        right = self.get_value(src)
+        if not isinstance(left, str) or not isinstance(right, str):
+            raise ValueError(f"CONCAT requires string operands, got {left} and {right}")
+
+        result = left + right
+        if dest in self.registers:
+            self.registers[dest] = result
+        elif dest.startswith("$"):
+            address = self.get_address(dest)
+            self.memory[address] = result
+        else:
+            raise ValueError(f"CONCAT invalid destination: {dest}")
 
     def get_value(self, operand):
-        """Obtenir la valeur d'un registre, une adresse mémoire, ou une constante."""
-        if operand in self.registers:  # Si c'est un registre
+        """Get the value of a register, memory address, or constant."""
+        if operand in self.registers:  # If it's a register
             return self.registers[operand]
-        elif operand.isdigit():  # Si c'est une constante immédiate
+        elif operand.isdigit():  # If it's an immediate integer constant
             return int(operand)
-        elif operand.startswith("$"):  # Si c'est une adresse mémoire (ex: $0000)
+        elif operand.startswith("$"):  # If it's a memory address (e.g., $0000)
             address = self.get_address(operand)
             return self.memory[address]
-        elif operand in self.symbol_table:  # Si c'est une variable (nom de la variable)
+        elif operand in self.symbol_table:  # If it's a variable (e.g., variable name)
             address = self.symbol_table[operand]["address"]
             return self.memory[address]
+        elif operand.startswith('"') and operand.endswith('"'):  # If it's a string literal
+            return operand[1:-1]
         else:
             raise ValueError(f"Unknown operand: {operand}")
 
     def get_address(self, operand):
-        """Convertir une adresse en notation hexadécimale (ex: $0000) en un entier."""
-        # S'assurer que l'adresse commence par "$" et est au format hexadécimal
+        """Convert a hexadecimal address (e.g., $0000) to an integer."""
         if operand.startswith("$"):
-            return int(operand[1:], 16)  # Convertir l'adresse hexadécimale en entier
+            return int(operand[1:], 16)  # Convert the hexadecimal address to an integer
         else:
             raise ValueError(f"Invalid address format: {operand}")
 
-
-# Exemple d'utilisation avec le code assembleur généré
+# Example usage with the generated assembly code
 assembly_code = generator.instructions
-print("------------------------------------------------------------------")
 interpreter = Interpreter(assembly_code, symbol_table)
 interpreter.execute()
 
-# Afficher l'état final de la mémoire
+# Display final outputs
+print("\nOutputs:")
+print("\n".join(map(str, interpreter.outputs)))
+
+# Display final memory state
 print("\nMemory State:")
 print(interpreter.memory)

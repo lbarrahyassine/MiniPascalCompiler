@@ -171,26 +171,35 @@ class CompilerInterface(QMainWindow):
         self.graphical_tree_canvas.setVisible(True)
         self.render_graphical_tree(self.ast_root)
 
-    def render_graphical_tree(self, node, x=0, y=0, level=1, ax=None, dx=1):
+    def render_graphical_tree(self, node, x=0, y=0, level=1, ax=None, dx=10):
         if node is None:
             return
 
         if ax is None:
             ax = self.graphical_tree_canvas.figure.add_subplot(111)
             ax.clear()
-            ax.set_xlim(-5, 5)
-            ax.set_ylim(-10, 1)
             ax.axis("off")
 
         # Draw the current node
-        ax.text(x, y, node.type, ha="center", va="center", fontsize=10, bbox=dict(boxstyle="circle", facecolor="lightblue"))
+        ax.text(
+            x, y, node.type,
+            ha="center", va="center",
+            fontsize=8,
+            bbox=dict(boxstyle="circle", facecolor="lightblue", edgecolor="black")
+        )
 
-        # Draw edges and child nodes
-        child_y = y - level
-        for i, child in enumerate(node.children):
-            child_x = x + (i - len(node.children) / 2) * dx
-            ax.plot([x, child_x], [y - 0.1, child_y + 0.1], "k-")
-            self.render_graphical_tree(child, child_x, child_y, level + 1, ax, dx / 2)
+        # Calculate positions for children
+        num_children = len(node.children)
+        if num_children > 0:
+            child_dx = dx / num_children
+            child_y = y - 2  # Distance between levels
+
+            for i, child in enumerate(node.children):
+                child_x = x - (dx / 2) + (i + 0.5) * child_dx
+                # Draw connecting line
+                ax.plot([x, child_x], [y - 0.5, child_y + 0.5], "k-", lw=1)
+                # Recursively render child nodes
+                self.render_graphical_tree(child, child_x, child_y, level + 1, ax, dx / 2)
 
         self.graphical_tree_canvas.draw()
 
@@ -198,31 +207,25 @@ class CompilerInterface(QMainWindow):
         if not source_code.strip():
             return "No source code to compile.", "", None
 
-        analyser1 = LexicalAnalyser()
-        tokens1 = analyser1.analyse(source_code)
-        parser1 = Parser(tokens1)
-        ast1 = parser1.parse_program()
-        ast_verif1 = Semantic_analyzer(ast1)
-        ast_verif1.evaluate(ast1)
-        symbol_table1 = ast_verif1.symbol_table
-        generator1 = CodeGenerator(ast1, symbol_table1)
-        generator1.generate_code(ast1)
-        assembly_code1 = generator1.instructions
-        interpreter1 = Interpreter(assembly_code1, symbol_table1)
-        interpreter1.execute()
-        outs = interpreter1.outputs
+        analyser = LexicalAnalyser()
+        tokens = analyser.analyse(source_code)
+        parser = Parser(tokens)
+        ast_root = parser.parse_program()
+        semantic_analyzer = Semantic_analyzer(ast_root)
+        semantic_analyzer.evaluate(ast_root)
+        symbol_table = semantic_analyzer.symbol_table
+        code_generator = CodeGenerator(ast_root, symbol_table)
+        code_generator.generate_code(ast_root)
+        assembly_code = code_generator.instructions
+        interpreter = Interpreter(assembly_code, symbol_table)
+        interpreter.execute()
+        output = interpreter.outputs
 
-        # Format output
-        output_text = "\n".join(str(item) for item in outs)
+        # Format outputs
+        output_text = "\n".join(str(item) for item in output)
+        symbol_table_text = "\n".join(f"{key}: {value}" for key, value in symbol_table.items())
 
-        # Format symbol table
-        symbol_table_text = "\n".join(f"{key}: {value}" for key, value in symbol_table1.items())
-
-        return (
-            f"Compiled Output:\n{output_text}",
-            f"Symbol Table:\n{symbol_table_text}",
-            ast1,  # Return the AST root for the tree view
-        )
+        return output_text, symbol_table_text, ast_root
 
 
 if __name__ == "__main__":

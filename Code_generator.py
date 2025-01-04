@@ -9,94 +9,144 @@ class CodeGenerator:
         self.current_label = 0
 
     def new_label(self):
-        """Génère une nouvelle étiquette unique."""
+        """Generate a new unique label."""
         self.current_label += 1
         return f"L{self.current_label}"
 
     def format_address(self, address):
-        """Formate l'adresse au format `$0000`, `$0001`, etc."""
+        """Format the address as `$0000`, `$0001`, etc."""
         return f"${address:04X}"
 
     def generate_code(self, node):
         if node.type == "ProgramName":
-            # Ajouter un commentaire avec le nom du programme
-            pass  # On peut ajouter des commentaires ou ignorer
+            # Add a comment with the program name
+            self.instructions.append(f"; Program: {node.value}\n")
 
         elif node.type == "Program":
             for child in node.children:
                 self.generate_code(child)
 
         elif node.type == "Declarations":
-            # Ajout des déclarations de variables
-            pass  # Pas nécessaire pour l'assembleur ici
+            # Variable declarations (not needed for assembly code generation)
+            pass
 
         elif node.type == "Block":
-            # Générer le code pour les instructions dans le bloc
+            # Generate code for statements in the block
             for child in node.children:
                 self.generate_code(child)
 
         elif node.type == "Statements":
-            # Générer le code pour chaque instruction
+            # Generate code for each statement
             for child in node.children:
                 self.generate_code(child)
 
         elif node.type == "Assignment":
-            # Générer une affectation
+            # Generate code for assignment
             var_name = node.value
             expression_code = self.generate_expression(node.children[0])
             self.instructions.extend(expression_code)
             variable_address = self.format_address(self.symbol_table[var_name]["address"])
-            self.instructions.append(f"MOV {variable_address}, AX\n")  # Pas de crochets ici
+            self.instructions.append(f"MOV {variable_address}, AX\n")
 
         elif node.type == "Write":
-            # Générer le code pour write (affichage)
-            var_name = node.children[0].value
-            variable_address = self.format_address(self.symbol_table[var_name]["address"])
-            self.instructions.append(f"MOV AX, {variable_address}\n")  # Pas de crochets ici
-            self.instructions.append("OUT AX\n")
+            # Generate code for write (output)
+            expr_node = node.children[0]
+            expr_type = self.symbol_table[expr_node.value]["type"] if expr_node.type == "Variable" else self.get_node_type(expr_node)
+
+            if expr_type == "integer":
+                # Handle integer output
+                expr_code = self.generate_expression(expr_node)
+                self.instructions.extend(expr_code)
+                self.instructions.append("OUT AX\n")
+            elif expr_type == "string":
+                # Handle string output
+                if expr_node.type == "Variable":
+                    variable_address = self.format_address(self.symbol_table[expr_node.value]["address"])
+                    self.instructions.append(f"OUT_STR {variable_address}\n")
+                elif expr_node.type == "String":
+                    self.instructions.append(f'OUT_STR "{expr_node.value}"\n')
 
     def generate_expression(self, node):
-        """Génère le code assembleur pour une expression."""
+        """Generate assembly code for an expression."""
         if node.type == "Number":
             return [f"MOV AX, {node.value}\n"]
 
+        elif node.type == "String":
+            # Load string literal into a specific register or memory
+            return [f'MOV AX, "{node.value}"\n']
+
         elif node.type == "Variable":
             variable_address = self.format_address(self.symbol_table[node.value]["address"])
-            return [f"MOV AX, {variable_address}\n"]  # Pas de crochets ici
+            return [f"MOV AX, {variable_address}\n"]
 
         elif node.type == "BinaryOperation":
             left_code = self.generate_expression(node.children[0])
             right_code = self.generate_expression(node.children[1])
             operator = node.value
 
-            operation_map = {
-                "+": "ADD",
-                "*": "MUL",
-            }
-            operation = operation_map.get(operator)
-            if not operation:
-                raise ValueError(f"Unknown operator: {operator}")
+            if operator == "+":
+                # Handle string concatenation or integer addition
+                left_type = self.get_node_type(node.children[0])
+                right_type = self.get_node_type(node.children[1])
+                if left_type == "string" and right_type == "string":
+                    # String concatenation
+                    code = left_code
+                    code.append("PUSH AX\n")  # Save left string
+                    code.extend(right_code)
+                    code.append("POP BX\n")  # Retrieve left string
+                    code.append("CONCAT AX, BX\n")  # Concatenate strings
+                    return code
+                elif left_type == "integer" and right_type == "integer":
+                    # Integer addition
+                    code = left_code
+                    code.append("PUSH AX\n")  # Save left value
+                    code.extend(right_code)
+                    code.append("POP BX\n")  # Retrieve left value
+                    code.append("ADD AX, BX\n")  # Add integers
+                    return code
+                else:
+                    raise ValueError("Type mismatch in binary operation")
 
-            code = left_code
-            code.append("PUSH AX\n")  # Sauvegarde la valeur gauche
-            code.extend(right_code)
-            code.append("POP BX\n")  # Récupère la valeur gauche dans BX
-            code.append(f"{operation} AX, BX\n")  # Effectue l'opération
-            return code
+            elif operator == "*":
+                # Handle integer multiplication
+                code = left_code
+                code.append("PUSH AX\n")  # Save left value
+                code.extend(right_code)
+                code.append("POP BX\n")  # Retrieve left value
+                code.append("MUL AX, BX\n")  # Multiply integers
+                return code
+
+            else:
+                raise ValueError(f"Unsupported operator: {operator}")
 
         else:
             raise ValueError(f"Unsupported node type for expression: {node.type}")
 
+    def get_node_type(self, node):
+        """Get the type of a node."""
+        if node.type == "Number":
+            return "integer"
+        elif node.type == "String":
+            return "string"
+        elif node.type == "Variable":
+            return self.symbol_table[node.value]["type"]
+        elif node.type == "BinaryOperation":
+            left_type = self.get_node_type(node.children[0])
+            right_type = self.get_node_type(node.children[1])
+            if left_type == right_type:
+                return left_type
+            else:
+                raise ValueError(f"Type mismatch in binary operation: {left_type} vs {right_type}")
+
     def write_to_file(self):
-        """Écrit les instructions générées dans un fichier."""
+        """Write the generated instructions to the output file."""
         with open(self.output_file, "w") as f:
             f.writelines(self.instructions)
 
-# Exemple d'utilisation
-print("------------------------------------------------------------------")
+# Example usage
 generator = CodeGenerator(ast, symbol_table)
 generator.generate_code(ast)
 
-print("\nInstructions générées :")
+print("\nGenerated Instructions:")
 print("\n".join(generator.instructions))
 generator.write_to_file()

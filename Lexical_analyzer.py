@@ -1,7 +1,7 @@
 class LexicalAnalyser:
     def __init__(self):
         # Liste des mots-clés de Pascal
-        self.KEYWORDS = ["program", "var", "integer","string","real", "begin", "end", "if", "then", "else",
+        self.KEYWORDS = ["program", "var", "integer", "string", "real", "begin", "end", "if", "then", "else",
                          "while", "do", "for", "to", "write", "read"]
 
         # Liste des opérateurs et délimiteurs
@@ -55,6 +55,21 @@ class LexicalAnalyser:
                 tokens.append({"type": "NUMBER", "value": number, "position": i})
                 continue
 
+            # Identifier les chaînes de caractères
+            if char in ['"', "'"]:
+                quote_type = char
+                start = i
+                i += 1
+                while i < length and code[i] != quote_type:
+                    i += 1
+                if i < length and code[i] == quote_type:
+                    i += 1
+                    string_value = code[start + 1:i - 1]
+                    tokens.append({"type": "STRING", "value": string_value, "position": i})
+                else:
+                    raise ValueError(f"Erreur : Chaîne non fermée à la position {start}")
+                continue
+
             # Identifier les opérateurs
             if any(code[i:i + len(op)] == op for op in self.OPERATORS):
                 for op in self.OPERATORS:
@@ -95,7 +110,7 @@ if __name__ == "__main__":
     program Example;
     var x, y: integer;
     begin
-        x := 10;
+        x := "alt";
         y := x + 20;
         write(y);
     end.
