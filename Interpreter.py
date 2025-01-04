@@ -7,6 +7,7 @@ class Interpreter:
         self.memory = [0] * len(symbol_table)  # Mémoire représentée comme une liste
         self.registers = {"AX": 0, "BX": 0, "SP": []}  # Simuler les registres du CPU, incluant le pointeur de pile
         self.program_counter = 0  # Simuler le compteur de programme
+        self.outputs=[]
 
     def execute(self):
         """Boucle principale d'exécution."""
@@ -95,7 +96,8 @@ class Interpreter:
     def out(self, src):
         """Implémentation de l'instruction OUT."""
         value = self.get_value(src)
-        print(f"OUTPUT: {value}")  # Afficher l'output de la commande OUT
+        self.outputs.append(value)
+        #print(f"OUTPUT: {value}")  # Afficher l'output de la commande OUT
 
     def get_value(self, operand):
         """Obtenir la valeur d'un registre, une adresse mémoire, ou une constante."""
