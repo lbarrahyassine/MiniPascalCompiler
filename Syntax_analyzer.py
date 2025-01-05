@@ -166,14 +166,14 @@ class Parser:
 # Example usage
 source_code = """
 program Example;
-var x,y: integer;
-z: string;
+var x,y,a,b: integer;
+z,t: string;
 begin
     x := 10;
     write(x);
     y := x + 20 * 12 + 4;
     write(y);
-    z :="ender";
+    z :="chaine de charactere";
     write(z);
 end.
 """

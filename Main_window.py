@@ -11,7 +11,11 @@ from PyQt5.QtWidgets import (
     QWidget,
     QHBoxLayout,
     QSplitter,
+    QTableWidget,
+    QTableWidgetItem,
+    QStackedWidget,
 )
+from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import Qt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
@@ -22,45 +26,54 @@ class CompilerInterface(QMainWindow):
         super().__init__()
         self.init_ui()
         self.current_output = ""
-        self.current_symbol_table = ""
-        self.ast_root = None  # For storing the AST
+        self.current_symbol_table = {}
+        self.ast_root = None
 
     def init_ui(self):
         # Set the main window properties
-        self.setWindowTitle("Compiler Interface")
+        self.setWindowTitle("Pascal Compiler")
         self.setGeometry(100, 100, 800, 600)
+        self.setWindowIcon(QIcon("logo.png"))
 
         # Create the main widget
         main_widget = QWidget()
         self.setCentralWidget(main_widget)
-
-        # Layouts
         main_layout = QVBoxLayout(main_widget)
 
-        # Text editor for source code
+        # Source code editor
         self.source_code_editor = QTextEdit()
-        self.source_code_editor.setPlaceholderText("Write your source code here...")
+        self.source_code_editor.setPlaceholderText("Write your code here...")
         self.source_code_editor.setStyleSheet("font: 12pt Courier;")
 
-        # Output display area
+        # Stacked widget to toggle views
+        self.display_stack = QStackedWidget()
+
+        # Output display
         self.output_display = QTextEdit()
         self.output_display.setReadOnly(True)
         self.output_display.setStyleSheet("font: 10pt Courier; background-color: #f5f5f5;")
+        self.display_stack.addWidget(self.output_display)
 
-        # Tree widget for AST display
+        # Symbol table display as a table
+        self.symbol_table_widget = QTableWidget()
+        self.symbol_table_widget.setColumnCount(3)  # Name, Type, Address
+        self.symbol_table_widget.setHorizontalHeaderLabels(["Name", "Type", "Address"])
+        self.display_stack.addWidget(self.symbol_table_widget)
+
+        # Tree widget for AST
         self.tree_display = QTreeWidget()
         self.tree_display.setHeaderLabel("Abstract Syntax Tree")
-        self.tree_display.setVisible(False)  # Initially hidden
+        self.display_stack.addWidget(self.tree_display)
 
         # Graphical tree display
         self.graphical_tree_canvas = FigureCanvas(Figure(figsize=(5, 4)))
-        self.graphical_tree_canvas.setVisible(False)
+        self.display_stack.addWidget(self.graphical_tree_canvas)
 
-        # Menu buttons for toggling views
+        # Menu buttons
         menu_layout = QHBoxLayout()
         self.output_button = QPushButton("Output")
         self.output_button.setCheckable(True)
-        self.output_button.setChecked(True)  # Default selection
+        self.output_button.setChecked(True)
         self.output_button.clicked.connect(self.show_output)
 
         self.symbol_table_button = QPushButton("Symbol Table")
@@ -75,7 +88,7 @@ class CompilerInterface(QMainWindow):
         self.graphical_tree_button.setCheckable(True)
         self.graphical_tree_button.clicked.connect(self.show_graphical_tree)
 
-        # Group buttons and ensure only one is selected at a time
+        # Group buttons
         menu_layout.addWidget(self.output_button)
         menu_layout.addWidget(self.symbol_table_button)
         menu_layout.addWidget(self.tree_button)
@@ -89,124 +102,102 @@ class CompilerInterface(QMainWindow):
         # Add widgets to layout
         splitter = QSplitter(Qt.Vertical)
         splitter.addWidget(self.source_code_editor)
-        splitter.addWidget(self.output_display)
-        splitter.addWidget(self.tree_display)
-        splitter.addWidget(self.graphical_tree_canvas)
-
+        splitter.addWidget(self.display_stack)
         main_layout.addWidget(splitter)
         main_layout.addLayout(menu_layout)
         main_layout.addWidget(run_button)
 
     def run_program(self):
-        # Get the source code from the editor
         source_code = self.source_code_editor.toPlainText()
-
-        # Simulate compiler backend call
         try:
             output, symbol_table, ast_root = self.compiler_backend(source_code)
             self.current_output = output
             self.current_symbol_table = symbol_table
             self.ast_root = ast_root
-            self.show_output()  # Show the output by default
+            self.show_output()
         except Exception as e:
             self.output_display.setPlainText(f"Error: {str(e)}")
 
     def show_output(self):
-        # Display the compiled output
         self.output_button.setChecked(True)
         self.symbol_table_button.setChecked(False)
         self.tree_button.setChecked(False)
         self.graphical_tree_button.setChecked(False)
-        self.output_display.setVisible(True)
-        self.tree_display.setVisible(False)
-        self.graphical_tree_canvas.setVisible(False)
+        self.display_stack.setCurrentWidget(self.output_display)
         self.output_display.setPlainText(self.current_output)
 
     def show_symbol_table(self):
-        # Display the symbol table
         self.symbol_table_button.setChecked(True)
         self.output_button.setChecked(False)
         self.tree_button.setChecked(False)
         self.graphical_tree_button.setChecked(False)
-        self.output_display.setVisible(True)
-        self.tree_display.setVisible(False)
-        self.graphical_tree_canvas.setVisible(False)
-        self.output_display.setPlainText(self.current_symbol_table)
+        self.display_stack.setCurrentWidget(self.symbol_table_widget)
+        self.populate_symbol_table(self.current_symbol_table)
+
+    def populate_symbol_table(self, symbol_table):
+        self.symbol_table_widget.clearContents()
+        self.symbol_table_widget.setRowCount(len(symbol_table))
+        for row, (name, details) in enumerate(symbol_table.items()):
+            var_type = details.get("type", "Unknown")
+            address = details.get("address", "N/A")
+            self.symbol_table_widget.setItem(row, 0, QTableWidgetItem(name))
+            self.symbol_table_widget.setItem(row, 1, QTableWidgetItem(var_type))
+            self.symbol_table_widget.setItem(row, 2, QTableWidgetItem(str(address)))
 
     def show_tree(self):
-        # Display the AST as a tree
         self.tree_button.setChecked(True)
         self.output_button.setChecked(False)
         self.symbol_table_button.setChecked(False)
         self.graphical_tree_button.setChecked(False)
-        self.output_display.setVisible(False)
-        self.tree_display.setVisible(True)
-        self.graphical_tree_canvas.setVisible(False)
+        self.display_stack.setCurrentWidget(self.tree_display)
         self.populate_tree(self.ast_root)
 
     def populate_tree(self, node, parent_item=None):
         if node is None:
             return
-
-        # Create a QTreeWidgetItem for the current node
         item = QTreeWidgetItem([f"{node.type}: {node.value or ''}"])
         if parent_item is None:
             self.tree_display.clear()
             self.tree_display.addTopLevelItem(item)
         else:
             parent_item.addChild(item)
-
-        # Recursively add children
         for child in node.children:
             self.populate_tree(child, item)
 
     def show_graphical_tree(self):
-        # Display the AST graphically
         self.graphical_tree_button.setChecked(True)
         self.output_button.setChecked(False)
         self.symbol_table_button.setChecked(False)
         self.tree_button.setChecked(False)
-        self.output_display.setVisible(False)
-        self.tree_display.setVisible(False)
-        self.graphical_tree_canvas.setVisible(True)
+        self.display_stack.setCurrentWidget(self.graphical_tree_canvas)
         self.render_graphical_tree(self.ast_root)
 
     def render_graphical_tree(self, node, x=0, y=0, level=1, ax=None, dx=10):
         if node is None:
             return
-
         if ax is None:
             ax = self.graphical_tree_canvas.figure.add_subplot(111)
             ax.clear()
             ax.axis("off")
-
-        # Draw the current node
         ax.text(
             x, y, node.type,
             ha="center", va="center",
             fontsize=8,
-            bbox=dict(boxstyle="circle", facecolor="lightblue", edgecolor="black")
+            bbox=dict(boxstyle="circle", facecolor="lightblue", edgecolor="black"),
         )
-
-        # Calculate positions for children
         num_children = len(node.children)
         if num_children > 0:
             child_dx = dx / num_children
-            child_y = y - 2  # Distance between levels
-
+            child_y = y - 2
             for i, child in enumerate(node.children):
                 child_x = x - (dx / 2) + (i + 0.5) * child_dx
-                # Draw connecting line
                 ax.plot([x, child_x], [y - 0.5, child_y + 0.5], "k-", lw=1)
-                # Recursively render child nodes
                 self.render_graphical_tree(child, child_x, child_y, level + 1, ax, dx / 2)
-
         self.graphical_tree_canvas.draw()
 
     def compiler_backend(self, source_code):
         if not source_code.strip():
-            return "No source code to compile.", "", None
-
+            return "No source code to compile.", {}, None
         analyser = LexicalAnalyser()
         tokens = analyser.analyse(source_code)
         parser = Parser(tokens)
@@ -220,12 +211,8 @@ class CompilerInterface(QMainWindow):
         interpreter = Interpreter(assembly_code, symbol_table)
         interpreter.execute()
         output = interpreter.outputs
-
-        # Format outputs
         output_text = "\n".join(str(item) for item in output)
-        symbol_table_text = "\n".join(f"{key}: {value}" for key, value in symbol_table.items())
-
-        return output_text, symbol_table_text, ast_root
+        return output_text, symbol_table, ast_root
 
 
 if __name__ == "__main__":

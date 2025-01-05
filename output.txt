@@ -19,6 +19,6 @@ ADD AX, BX
 MOV $0001, AX
 MOV AX, $0001
 OUT AX
-MOV AX, "ender"
-MOV $0002, AX
-OUT_STR $0002
+MOV AX, "chaine de charactere"
+MOV $0004, AX
+OUT_STR $0004
