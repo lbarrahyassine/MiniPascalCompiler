@@ -7,8 +7,7 @@ class Semantic_analyzer:
 
     def evaluate(self, node):
         if node.type == "ProgramName":
-            # Handle the ProgramName node
-            print(f"Processing program name: {node.value}")
+            pass
 
         elif node.type == "Program":
             for child in node.children:
@@ -127,8 +126,9 @@ class Semantic_analyzer:
             raise ValueError(f"Unsupported node type for type checking: {node.type}")
 
 
-# Example usage
-interpreter = Semantic_analyzer(ast)
-interpreter.evaluate(ast)
-symbol_table = interpreter.symbol_table
-print(interpreter.symbol_table)
+parser = Parser(tokens)
+ast_root = parser.parse_program()
+semantic_analyzer = Semantic_analyzer(ast_root)
+semantic_analyzer.evaluate(ast_root)
+symbol_table = semantic_analyzer.symbol_table
+print(symbol_table)

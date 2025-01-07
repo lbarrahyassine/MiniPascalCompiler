@@ -170,15 +170,3 @@ class Interpreter:
         else:
             raise ValueError(f"Invalid address format: {operand}")
 
-# Example usage with the generated assembly code
-assembly_code = generator.instructions
-interpreter = Interpreter(assembly_code, symbol_table)
-interpreter.execute()
-
-# Display final outputs
-print("\nOutputs:")
-print("\n".join(map(str, interpreter.outputs)))
-
-# Display final memory state
-print("\nMemory State:")
-print(interpreter.memory)

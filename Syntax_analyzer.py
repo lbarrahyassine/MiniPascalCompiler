@@ -161,30 +161,3 @@ class Parser:
         else:
             raise ValueError(f"Invalid factor: {token}")
 
-
-
-# Example usage
-source_code = """
-program Example;
-var x,y,a,b: integer;
-z,t: string;
-begin
-    x := 10;
-    write(x);
-    y := x + 20 * 12 + 4;
-    write(y);
-    z :="chaine de charactere";
-    write(z);
-end.
-"""
-
-# Perform lexical analysis
-analyser = LexicalAnalyser()
-tokens = analyser.analyse(source_code)
-
-# Parse and generate the AST
-parser = Parser(tokens)
-ast = parser.parse_program()
-
-# Display the AST
-ast.display()

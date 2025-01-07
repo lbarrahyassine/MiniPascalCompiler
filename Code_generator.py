@@ -143,10 +143,4 @@ class CodeGenerator:
         with open(self.output_file, "w") as f:
             f.writelines(self.instructions)
 
-# Example usage
-generator = CodeGenerator(ast, symbol_table)
-generator.generate_code(ast)
 
-print("\nGenerated Instructions:")
-print("\n".join(generator.instructions))
-generator.write_to_file()
