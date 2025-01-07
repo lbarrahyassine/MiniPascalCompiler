@@ -17,8 +17,8 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import Qt
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.figure import Figure
+#from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+#from matplotlib.figure import Figure
 
 
 class CompilerInterface(QMainWindow):
@@ -66,8 +66,8 @@ class CompilerInterface(QMainWindow):
         self.display_stack.addWidget(self.tree_display)
 
         # Graphical tree display
-        self.graphical_tree_canvas = FigureCanvas(Figure(figsize=(5, 4)))
-        self.display_stack.addWidget(self.graphical_tree_canvas)
+        #self.graphical_tree_canvas = FigureCanvas(Figure(figsize=(5, 4)))
+        #self.display_stack.addWidget(self.graphical_tree_canvas)
 
         # Menu buttons
         menu_layout = QHBoxLayout()
@@ -84,15 +84,15 @@ class CompilerInterface(QMainWindow):
         self.tree_button.setCheckable(True)
         self.tree_button.clicked.connect(self.show_tree)
 
-        self.graphical_tree_button = QPushButton("Graphical Tree")
-        self.graphical_tree_button.setCheckable(True)
-        self.graphical_tree_button.clicked.connect(self.show_graphical_tree)
+        #self.graphical_tree_button = QPushButton("Graphical Tree")
+        #self.graphical_tree_button.setCheckable(True)
+        #self.graphical_tree_button.clicked.connect(self.show_graphical_tree)
 
         # Group buttons
         menu_layout.addWidget(self.output_button)
         menu_layout.addWidget(self.symbol_table_button)
         menu_layout.addWidget(self.tree_button)
-        menu_layout.addWidget(self.graphical_tree_button)
+        #menu_layout.addWidget(self.graphical_tree_button)
 
         # Run button
         run_button = QPushButton("Run")
@@ -122,7 +122,7 @@ class CompilerInterface(QMainWindow):
         self.output_button.setChecked(True)
         self.symbol_table_button.setChecked(False)
         self.tree_button.setChecked(False)
-        self.graphical_tree_button.setChecked(False)
+        #self.graphical_tree_button.setChecked(False)
         self.display_stack.setCurrentWidget(self.output_display)
         self.output_display.setPlainText(self.current_output)
 
@@ -130,7 +130,7 @@ class CompilerInterface(QMainWindow):
         self.symbol_table_button.setChecked(True)
         self.output_button.setChecked(False)
         self.tree_button.setChecked(False)
-        self.graphical_tree_button.setChecked(False)
+        #self.graphical_tree_button.setChecked(False)
         self.display_stack.setCurrentWidget(self.symbol_table_widget)
         self.populate_symbol_table(self.current_symbol_table)
 
@@ -148,7 +148,7 @@ class CompilerInterface(QMainWindow):
         self.tree_button.setChecked(True)
         self.output_button.setChecked(False)
         self.symbol_table_button.setChecked(False)
-        self.graphical_tree_button.setChecked(False)
+        #self.graphical_tree_button.setChecked(False)
         self.display_stack.setCurrentWidget(self.tree_display)
         self.populate_tree(self.ast_root)
 
@@ -164,7 +164,7 @@ class CompilerInterface(QMainWindow):
         for child in node.children:
             self.populate_tree(child, item)
 
-    def show_graphical_tree(self):
+    '''def show_graphical_tree(self):
         self.graphical_tree_button.setChecked(True)
         self.output_button.setChecked(False)
         self.symbol_table_button.setChecked(False)
@@ -193,7 +193,7 @@ class CompilerInterface(QMainWindow):
                 child_x = x - (dx / 2) + (i + 0.5) * child_dx
                 ax.plot([x, child_x], [y - 0.5, child_y + 0.5], "k-", lw=1)
                 self.render_graphical_tree(child, child_x, child_y, level + 1, ax, dx / 2)
-        self.graphical_tree_canvas.draw()
+        self.graphical_tree_canvas.draw()'''
 
     def compiler_backend(self, source_code):
         if not source_code.strip():
