@@ -6,7 +6,7 @@ class Interpreter:
         self.symbol_table = symbol_table
         self.memory = [None] * len(symbol_table)  # Memory represented as a list, supporting both integers and strings
         self.registers = {"AX": None, "BX": None, "SP": []}  # Registers, allowing for mixed types
-        self.program_counter = 0  # Simulate the program counter
+        self.program_counter = 0  # Simulate the program coungiter
         self.outputs = []
 
     def execute(self):
@@ -158,7 +158,7 @@ class Interpreter:
         elif operand in self.symbol_table:  # If it's a variable (e.g., variable name)
             address = self.symbol_table[operand]["address"]
             return self.memory[address]
-        elif operand.startswith('"') and operand.endswith('"'):  # If it's a string literal
+        elif operand.startswith('"') and operand.endswith('"'):
             return operand[1:-1]
         else:
             raise ValueError(f"Unknown operand: {operand}")
