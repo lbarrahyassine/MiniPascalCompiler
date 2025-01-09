@@ -35,11 +35,12 @@ class Interpreter:
             self.mul(dest, src)
 
         elif command == "SUB":
-            src, dest = parts[1].rstrip(","), parts[2]
+            dest, src = parts[1].rstrip(","), parts[2]
+            print (src, dest)
             self.sub(dest, src)
 
         elif command == "DIV":
-            src, dest = parts[1].rstrip(","), parts[2]
+            dest, src = parts[1].rstrip(","), parts[2]
             self.div(dest, src)
 
         elif command == "PUSH":
@@ -99,7 +100,7 @@ class Interpreter:
         value = self.get_value(src)
         if dest in self.registers:  # Subtraction only works in registers
             if isinstance(self.registers[dest], int) and isinstance(value, int):
-                self.registers[dest] -= value
+                self.registers[dest] = value- self.registers[dest]
             else:
                 raise ValueError(f"SUB requires integer operands, got {self.registers[dest]} and {value}")
         else:
@@ -109,9 +110,9 @@ class Interpreter:
         value = self.get_value(src)
         if dest in self.registers:  # Division only works in registers
             if isinstance(self.registers[dest], int) and isinstance(value, int):
-                if value == 0:
-                    raise ZeroDivisionError("Division by zero is not allowed.")
-                self.registers[dest] //= value  # Perform integer division
+                if self.registers[dest] == 0:
+                    raise ZeroDivisionError("interpreteur : Division by zero is not allowed.")
+                self.registers[dest] = value //self.registers[dest]  # Perform integer division
             else:
                 raise ValueError(f"DIV requires integer operands, got {self.registers[dest]} and {value}")
         else:

@@ -58,6 +58,8 @@ class Semantic_analyzer:
                 raise TypeError(
                     f"Type error: Cannot assign {assigned_type} to {expected_type} variable {var_name}"
                 )
+            for child in node.children:
+                self.evaluate(child)
 
         elif node.type == "BinaryOperation":
             left_type = self.get_node_type(node.children[0])
@@ -65,11 +67,16 @@ class Semantic_analyzer:
             operator = node.value
 
             # Type check
-            if operator in ("+", "-"):
+            if operator in ("+", "-","*","/"):
                 if left_type != "integer" or right_type != "integer":
                     raise TypeError(
                         f"Type error: Cannot apply operator {operator} to non-integer operands"
                     )
+                if operator == "/":
+                    if node.children[1].type =="Number":
+                        if int(node.children[1].value) == 0:
+                            raise ZeroDivisionError("Semantic error: Division by zero")
+
             elif operator == "+":
                 # Allow string concatenation
                 if left_type == "string" and right_type == "string":
@@ -78,11 +85,8 @@ class Semantic_analyzer:
                     raise TypeError(
                         f"Type error: Operator '+' requires both operands to be strings or integers"
                     )
-            if operator == "/":
-                if node.children[1].type == "Number" and node.children[1].value == 0:
-                    raise ZeroDivisionError(
-                        "Semantic error: Division by zero detected"
-                    )
+
+
 
         elif node.type == "Number":
             return "integer"

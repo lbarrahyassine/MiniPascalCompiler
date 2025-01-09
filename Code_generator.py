@@ -157,4 +157,3 @@ class CodeGenerator:
         with open(self.output_file, "w") as f:
             f.writelines(self.instructions)
 
-

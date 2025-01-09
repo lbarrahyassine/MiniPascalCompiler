@@ -99,13 +99,14 @@ class LexicalAnalyser:
         return tokens
 
 
-source_code="""program programme1;
-    var x,y: integer;
-        a:string;
-    begin
-        x:=6;
-        y:=x/0;
-    end.
+source_code="""program pro;
+var x,y: integer;
+begin
+    x:=20;
+write(x);
+y:=10-4;
+write(y);
+end.
 
 """
 

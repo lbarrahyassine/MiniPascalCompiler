@@ -167,6 +167,7 @@ class CompilerInterface(QMainWindow):
         code_generator = CodeGenerator(ast_root, symbol_table)
         code_generator.generate_code(ast_root)
         assembly_code = code_generator.instructions
+        print(assembly_code)
         interpreter = Interpreter(assembly_code, symbol_table)
         interpreter.execute()
         output = interpreter.outputs

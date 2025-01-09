@@ -159,3 +159,12 @@ class Parser:
 
         else:
             raise ValueError(f"Invalid factor: {token}")
+
+# Perform lexical analysis
+analyser = LexicalAnalyser()
+tokens = analyser.analyse(source_code)
+
+# Parse and generate the AST
+parser = Parser(tokens)
+ast = parser.inspect_program()
+ast.display()
