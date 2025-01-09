@@ -73,9 +73,8 @@ class Semantic_analyzer:
                         f"Type error: Cannot apply operator {operator} to non-integer operands"
                     )
                 if operator == "/":
-                    if node.children[1].type =="Number":
-                        if int(node.children[1].value) == 0:
-                            raise ZeroDivisionError("Semantic error: Division by zero")
+                    if node.children[1].type =="Number"and int(node.children[1].value) == 0:
+                        raise ZeroDivisionError("Semantic error: Division by zero")
 
             elif operator == "+":
                 # Allow string concatenation
@@ -85,8 +84,8 @@ class Semantic_analyzer:
                     raise TypeError(
                         f"Type error: Operator '+' requires both operands to be strings or integers"
                     )
-
-
+            for child in node.children:
+                self.evaluate(child)
 
         elif node.type == "Number":
             return "integer"

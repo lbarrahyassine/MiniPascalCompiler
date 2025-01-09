@@ -166,8 +166,8 @@ class CompilerInterface(QMainWindow):
         symbol_table = semantic_analyzer.symbol_table
         code_generator = CodeGenerator(ast_root, symbol_table)
         code_generator.generate_code(ast_root)
+        code_generator.write_to_file()
         assembly_code = code_generator.instructions
-        print(assembly_code)
         interpreter = Interpreter(assembly_code, symbol_table)
         interpreter.execute()
         output = interpreter.outputs

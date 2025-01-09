@@ -84,18 +84,9 @@ class CodeGenerator:
             operator = node.value
 
             if operator == "+":
-                # Handle string concatenation or integer addition
                 left_type = self.get_node_type(node.children[0])
                 right_type = self.get_node_type(node.children[1])
-                if left_type == "string" and right_type == "string":
-                    # String concatenation
-                    code = left_code
-                    code.append("PUSH AX\n")  # Save left string
-                    code.extend(right_code)
-                    code.append("POP BX\n")  # Retrieve left string
-                    code.append("CONCAT AX, BX\n")  # Concatenate strings
-                    return code
-                elif left_type == "integer" and right_type == "integer":
+                if left_type == "integer" and right_type == "integer":
                     # Integer addition
                     code = left_code
                     code.append("PUSH AX\n")  # Save left value

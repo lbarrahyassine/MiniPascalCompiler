@@ -59,10 +59,6 @@ class Interpreter:
             src = " ".join(parts[1:])  # Handles string literals with spaces
             self.out_str(src)
 
-        elif command == "CONCAT":
-            dest, src = parts[1].rstrip(","), parts[2]
-            self.concat(dest, src)
-
         else:
             raise ValueError(f"Unknown instruction: {instruction}")
 
@@ -147,28 +143,6 @@ class Interpreter:
             else:
                 raise ValueError(f"OUT_STR expects a string, got {value}")
 
-    def concat(self, dest, src):
-        """Implementation of the CONCAT instruction for strings."""
-        if dest in self.registers and isinstance(self.registers[dest], str):
-            left = self.registers[dest]
-        elif dest.startswith("$"):
-            address = self.get_address(dest)
-            left = self.memory[address]
-        else:
-            raise ValueError(f"CONCAT invalid destination: {dest}")
-
-        right = self.get_value(src)
-        if not isinstance(left, str) or not isinstance(right, str):
-            raise ValueError(f"CONCAT requires string operands, got {left} and {right}")
-
-        result = left + right
-        if dest in self.registers:
-            self.registers[dest] = result
-        elif dest.startswith("$"):
-            address = self.get_address(dest)
-            self.memory[address] = result
-        else:
-            raise ValueError(f"CONCAT invalid destination: {dest}")
 
     def get_value(self, operand):
         """Get the value of a register, memory address, or constant."""

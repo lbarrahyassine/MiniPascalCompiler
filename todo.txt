@@ -1,7 +1,8 @@
-_add if in syntax and semantic analyzers
 _add write in semantic -----------------> done
-_negative values are not understood by the lexical analyzer
 _handle the ProgramName, Block, Program, Statements in evaluate(semantic_analyzer) -----------------> done
-_type errors in binary operations (only + and * are handeled)  on tuesday 24
+_type errors in binary operations (only + and * are handled)  -----------------> done
 _semantic analyzer should not calculate -----------------> done
-
+_add if, loops, boolean, tables in lexical, syntax and semantic analyzers
+_negative numbers are not understood by the lexical analyzer
+strings can not contain space
+operations does not work on strings like concatenations etc
