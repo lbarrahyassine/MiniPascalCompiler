@@ -78,6 +78,11 @@ class Semantic_analyzer:
                     raise TypeError(
                         f"Type error: Operator '+' requires both operands to be strings or integers"
                     )
+            if operator == "/":
+                if node.children[1].type == "Number" and node.children[1].value == 0:
+                    raise ZeroDivisionError(
+                        "Semantic error: Division by zero detected"
+                    )
 
         elif node.type == "Number":
             return "integer"
@@ -127,7 +132,7 @@ class Semantic_analyzer:
 
 
 parser = Parser(tokens)
-ast_root = parser.parse_program()
+ast_root = parser.inspect_program()
 semantic_analyzer = Semantic_analyzer(ast_root)
 semantic_analyzer.evaluate(ast_root)
 symbol_table = semantic_analyzer.symbol_table

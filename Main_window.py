@@ -17,8 +17,7 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import Qt
-#from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-#from matplotlib.figure import Figure
+
 
 
 class CompilerInterface(QMainWindow):
@@ -30,17 +29,16 @@ class CompilerInterface(QMainWindow):
         self.ast_root = None
 
     def init_ui(self):
-        # Set the main window properties
         self.setWindowTitle("Pascal Compiler")
         self.setGeometry(100, 100, 800, 600)
         self.setWindowIcon(QIcon("logo.png"))
 
-        # Create the main widget
+
         main_widget = QWidget()
         self.setCentralWidget(main_widget)
         main_layout = QVBoxLayout(main_widget)
 
-        # Source code editor
+
         self.source_code_editor = QTextEdit()
         self.source_code_editor.setPlaceholderText("Write your code here...")
         self.source_code_editor.setStyleSheet("font: 12pt Courier;")
@@ -65,9 +63,6 @@ class CompilerInterface(QMainWindow):
         self.tree_display.setHeaderLabel("Abstract Syntax Tree")
         self.display_stack.addWidget(self.tree_display)
 
-        # Graphical tree display
-        #self.graphical_tree_canvas = FigureCanvas(Figure(figsize=(5, 4)))
-        #self.display_stack.addWidget(self.graphical_tree_canvas)
 
         # Menu buttons
         menu_layout = QHBoxLayout()
@@ -84,17 +79,11 @@ class CompilerInterface(QMainWindow):
         self.tree_button.setCheckable(True)
         self.tree_button.clicked.connect(self.show_tree)
 
-        #self.graphical_tree_button = QPushButton("Graphical Tree")
-        #self.graphical_tree_button.setCheckable(True)
-        #self.graphical_tree_button.clicked.connect(self.show_graphical_tree)
-
         # Group buttons
         menu_layout.addWidget(self.output_button)
         menu_layout.addWidget(self.symbol_table_button)
         menu_layout.addWidget(self.tree_button)
-        #menu_layout.addWidget(self.graphical_tree_button)
 
-        # Run button
         run_button = QPushButton("Run")
         run_button.setStyleSheet("font: 12pt; padding: 10px;")
         run_button.clicked.connect(self.run_program)
@@ -164,36 +153,6 @@ class CompilerInterface(QMainWindow):
         for child in node.children:
             self.populate_tree(child, item)
 
-    '''def show_graphical_tree(self):
-        self.graphical_tree_button.setChecked(True)
-        self.output_button.setChecked(False)
-        self.symbol_table_button.setChecked(False)
-        self.tree_button.setChecked(False)
-        self.display_stack.setCurrentWidget(self.graphical_tree_canvas)
-        self.render_graphical_tree(self.ast_root)
-
-    def render_graphical_tree(self, node, x=0, y=0, level=1, ax=None, dx=10):
-        if node is None:
-            return
-        if ax is None:
-            ax = self.graphical_tree_canvas.figure.add_subplot(111)
-            ax.clear()
-            ax.axis("off")
-        ax.text(
-            x, y, node.type,
-            ha="center", va="center",
-            fontsize=8,
-            bbox=dict(boxstyle="circle", facecolor="lightblue", edgecolor="black"),
-        )
-        num_children = len(node.children)
-        if num_children > 0:
-            child_dx = dx / num_children
-            child_y = y - 2
-            for i, child in enumerate(node.children):
-                child_x = x - (dx / 2) + (i + 0.5) * child_dx
-                ax.plot([x, child_x], [y - 0.5, child_y + 0.5], "k-", lw=1)
-                self.render_graphical_tree(child, child_x, child_y, level + 1, ax, dx / 2)
-        self.graphical_tree_canvas.draw()'''
 
     def compiler_backend(self, source_code):
         if not source_code.strip():
@@ -201,7 +160,7 @@ class CompilerInterface(QMainWindow):
         analyser = LexicalAnalyser()
         tokens = analyser.analyse(source_code)
         parser = Parser(tokens)
-        ast_root = parser.parse_program()
+        ast_root = parser.inspect_program()
         semantic_analyzer = Semantic_analyzer(ast_root)
         semantic_analyzer.evaluate(ast_root)
         symbol_table = semantic_analyzer.symbol_table

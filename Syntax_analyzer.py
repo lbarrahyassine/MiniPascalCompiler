@@ -35,7 +35,7 @@ class Parser:
             return token
         raise ValueError(f"Syntax Error: Expected {expected_type}, got {token}")
 
-    def parse_program(self):
+    def inspect_program(self):
         program_node = ASTNode("Program")
         token = self.consume("KEYWORD")  # 'program'
         program_node.value = token["value"]
@@ -45,13 +45,13 @@ class Parser:
         self.consume("DELIMITER")  # ';'
 
         if self.current_token() and self.current_token()["value"] == "var":
-            program_node.add_child(self.parse_vars())
+            program_node.add_child(self.inspect_vars())
 
-        program_node.add_child(self.parse_block())
+        program_node.add_child(self.inspect_block())
         self.consume("DELIMITER")  # '.'
         return program_node
 
-    def parse_vars(self):
+    def inspect_vars(self):
         vars_node = ASTNode("Declarations")
         self.consume("KEYWORD")  # 'var'
 
@@ -72,71 +72,70 @@ class Parser:
 
         return vars_node
 
-    def parse_block(self):
+    def inspect_block(self):
         block_node = ASTNode("Block")
         self.consume("KEYWORD")  # 'begin'
-        block_node.add_child(self.parse_statements())
+        block_node.add_child(self.inspect_statements())
         self.consume("KEYWORD")  # 'end'
         return block_node
 
-    def parse_statements(self):
+    def inspect_statements(self):
         statements_node = ASTNode("Statements")
-        while self.current_token() and not (self.current_token()["type"] == "KEYWORD" and self.current_token()["value"] == "end"):
-            statements_node.add_child(self.parse_statement())
+        while self.current_token() and not (
+                self.current_token()["type"] == "KEYWORD" and self.current_token()["value"] == "end"):
+            statements_node.add_child(self.inspect_statement())
         return statements_node
 
-    def parse_statement(self):
+    def inspect_statement(self):
         token = self.current_token()
 
         if token["type"] == "IDENTIFIER":  # Handle assignment
             var_token = self.consume("IDENTIFIER")
             self.consume("OPERATOR")  # ':='
-            expr_node = self.parse_expression()
+            expr_node = self.inspect_expression()
             self.consume("DELIMITER")  # ';'
             return ASTNode("Assignment", var_token["value"], [expr_node], position=var_token["position"])
 
         elif token["type"] == "KEYWORD" and token["value"] == "write":  # Handle write()
-            return self.parse_write()
+            return self.inspect_write()
 
         else:
             raise ValueError(f"Syntax Error: Unexpected statement at {token}")
 
-    def parse_write(self):
-        """Parse the `write()` function."""
+    def inspect_write(self):
         write_token = self.consume("KEYWORD")  # 'write'
         self.consume("DELIMITER")  # '('
-        expr_node = self.parse_expression()  # Parse the expression inside `write()`
+        expr_node = self.inspect_expression()  # Parse the expression inside `write()`
         self.consume("DELIMITER")  # ')'
         self.consume("DELIMITER")  # ';'
         return ASTNode("Write", None, [expr_node], position=write_token["position"])
 
-    def parse_expression(self):
-        """Parses an expression with addition and subtraction."""
-        left = self.parse_term()
+    def inspect_expression(self):
+        left = self.inspect_term()
 
         while self.current_token() and self.current_token()["type"] == "OPERATOR" and self.current_token()["value"] in (
-            "+", "-"):
+                "+", "-"):
             operator_token = self.consume("OPERATOR")
-            right = self.parse_term()
+            right = self.inspect_term()
             left = ASTNode("BinaryOperation", operator_token["value"], [left, right],
                            position=operator_token["position"])
 
         return left
 
-    def parse_term(self):
-        """Parses a term with multiplication and division."""
-        left = self.parse_factor()
+    def inspect_term(self):
+        """inspects a term with multiplication and division."""
+        left = self.inspect_factor()
 
         while self.current_token() and self.current_token()["type"] == "OPERATOR" and self.current_token()["value"] in (
-            "*", "/"):
+                "*", "/"):
             operator_token = self.consume("OPERATOR")
-            right = self.parse_factor()
+            right = self.inspect_factor()
             left = ASTNode("BinaryOperation", operator_token["value"], [left, right],
                            position=operator_token["position"])
 
         return left
 
-    def parse_factor(self):
+    def inspect_factor(self):
         """Parses a single factor: a number, a variable, a grouped expression, or a string."""
         token = self.current_token()
 
@@ -154,10 +153,9 @@ class Parser:
 
         elif token["type"] == "DELIMITER" and token["value"] == "(":
             self.consume("DELIMITER")  # '('
-            expr = self.parse_expression()
+            expr = self.inspect_expression()
             self.consume("DELIMITER")  # ')'
             return expr
 
         else:
             raise ValueError(f"Invalid factor: {token}")
-

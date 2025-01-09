@@ -10,7 +10,6 @@ class Interpreter:
         self.outputs = []
 
     def execute(self):
-        """Main execution loop."""
         while self.program_counter < len(self.assembly_code):
             instruction = self.assembly_code[self.program_counter].strip()
             self.program_counter += 1
@@ -34,6 +33,14 @@ class Interpreter:
         elif command == "MUL":
             dest, src = parts[1].rstrip(","), parts[2]
             self.mul(dest, src)
+
+        elif command == "SUB":
+            src, dest = parts[1].rstrip(","), parts[2]
+            self.sub(dest, src)
+
+        elif command == "DIV":
+            src, dest = parts[1].rstrip(","), parts[2]
+            self.div(dest, src)
 
         elif command == "PUSH":
             src = parts[1]
@@ -59,7 +66,6 @@ class Interpreter:
             raise ValueError(f"Unknown instruction: {instruction}")
 
     def mov(self, dest, src):
-        """Implementation of the MOV instruction."""
         value = self.get_value(src)
         if dest in self.registers:  # If the destination is a register
             self.registers[dest] = value
@@ -70,7 +76,6 @@ class Interpreter:
             raise ValueError(f"Unknown destination: {dest}")
 
     def add(self, dest, src):
-        """Implementation of the ADD instruction."""
         value = self.get_value(src)
         if dest in self.registers:  # Addition only works in registers
             if isinstance(self.registers[dest], int) and isinstance(value, int):
@@ -81,7 +86,6 @@ class Interpreter:
             raise ValueError(f"ADD requires a register destination, got: {dest}")
 
     def mul(self, dest, src):
-        """Implementation of the MUL instruction."""
         value = self.get_value(src)
         if dest in self.registers:
             if isinstance(self.registers[dest], int) and isinstance(value, int):
@@ -91,13 +95,33 @@ class Interpreter:
         else:
             raise ValueError(f"MUL requires a register destination, got: {dest}")
 
+    def sub(self, dest, src):
+        value = self.get_value(src)
+        if dest in self.registers:  # Subtraction only works in registers
+            if isinstance(self.registers[dest], int) and isinstance(value, int):
+                self.registers[dest] -= value
+            else:
+                raise ValueError(f"SUB requires integer operands, got {self.registers[dest]} and {value}")
+        else:
+            raise ValueError(f"SUB requires a register destination, got: {dest}")
+
+    def div(self, dest, src):
+        value = self.get_value(src)
+        if dest in self.registers:  # Division only works in registers
+            if isinstance(self.registers[dest], int) and isinstance(value, int):
+                if value == 0:
+                    raise ZeroDivisionError("Division by zero is not allowed.")
+                self.registers[dest] //= value  # Perform integer division
+            else:
+                raise ValueError(f"DIV requires integer operands, got {self.registers[dest]} and {value}")
+        else:
+            raise ValueError(f"DIV requires a register destination, got: {dest}")
+
     def push(self, src):
-        """Implementation of the PUSH instruction."""
         value = self.get_value(src)
         self.registers["SP"].append(value)
 
     def pop(self, dest):
-        """Implementation of the POP instruction."""
         stack = self.registers.get("SP", [])
         if not stack:
             raise ValueError("Stack underflow")
@@ -108,7 +132,6 @@ class Interpreter:
             raise ValueError(f"POP requires a register destination, got: {dest}")
 
     def out(self, src):
-        """Implementation of the OUT instruction for integers."""
         value = self.get_value(src)
         self.outputs.append(value)
 

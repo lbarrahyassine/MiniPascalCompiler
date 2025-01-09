@@ -9,7 +9,6 @@ class CodeGenerator:
         self.current_label = 0
 
     def new_label(self):
-        """Generate a new unique label."""
         self.current_label += 1
         return f"L{self.current_label}"
 
@@ -116,6 +115,23 @@ class CodeGenerator:
                 code.append("MUL AX, BX\n")  # Multiply integers
                 return code
 
+            elif operator == "-":
+                # Handle integer subtraction
+                code = left_code
+                code.append("PUSH AX\n")  # Save left value
+                code.extend(right_code)
+                code.append("POP BX\n")  # Retrieve left value
+                code.append("SUB AX, BX\n")  # Subtract integers
+                return code
+
+            elif operator == "/":
+                # Handle integer division
+                code = left_code
+                code.append("PUSH AX\n")  # Save left value
+                code.extend(right_code)
+                code.append("POP BX\n")  # Retrieve left value
+                code.append("DIV AX, BX\n")  # Divide AX by BX
+                return code
             else:
                 raise ValueError(f"Unsupported operator: {operator}")
 
@@ -123,7 +139,6 @@ class CodeGenerator:
             raise ValueError(f"Unsupported node type for expression: {node.type}")
 
     def get_node_type(self, node):
-        """Get the type of a node."""
         if node.type == "Number":
             return "integer"
         elif node.type == "String":
@@ -139,7 +154,6 @@ class CodeGenerator:
                 raise ValueError(f"Type mismatch in binary operation: {left_type} vs {right_type}")
 
     def write_to_file(self):
-        """Write the generated instructions to the output file."""
         with open(self.output_file, "w") as f:
             f.writelines(self.instructions)
 

@@ -9,19 +9,16 @@ class LexicalAnalyser:
         self.DELIMITERS = [";", ",", ".", "(", ")", ":"]
 
     def is_whitespace(self, char):
-        """Checks if a character is a space, tab, or newline."""
+        """Check if a character is a space"""
         return char in " \t\n\r"
 
     def is_letter(self, char):
-        """Checks if a character is a letter."""
         return char.isalpha()
 
     def is_digit(self, char):
-        """Checks if a character is a digit."""
         return char.isdigit()
 
     def analyse(self, code):
-        """Performs lexical analysis on the source code."""
         tokens = []
         i = 0
         length = len(code)
@@ -85,7 +82,7 @@ class LexicalAnalyser:
                 i += 1
                 continue
 
-            # Identify comments (ignore them)
+            # Identify comments
             if char == "{":
                 i += 1
                 while i < length and code[i] != "}":
@@ -106,7 +103,8 @@ source_code="""program programme1;
     var x,y: integer;
         a:string;
     begin
-        x:=1;
+        x:=6;
+        y:=x/0;
     end.
 
 """
